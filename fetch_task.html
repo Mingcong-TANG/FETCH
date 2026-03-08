@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>FETCH Task</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
+
+  body {
+    font-family: 'Fredoka One', 'Comic Sans MS', cursive;
+    background: #87CEEB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #app {
+    width: 800px;
+    max-width: 100vw;
+    min-height: 600px;
+    background: linear-gradient(180deg, #87CEEB 0%, #98D8C8 60%, #7EC850 100%);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+
+  /* ===== SCREENS ===== */
+  .screen {
+    display: none;
+    width: 100%;
+    min-height: 600px;
+    position: relative;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .screen.active { display: flex; }
+
+  /* ===== INTRO / PRIZE ===== */
+  #screen-intro {
+    background: linear-gradient(180deg, #FFF9E6 0%, #FFFBF0 100%);
+    text-align: center;
+  }
+  #screen-intro h1 {
+    font-size: 3em;
+    color: #E67E22;
+    text-shadow: 3px 3px 0 #F39C12;
+    margin-bottom: 10px;
+  }
+  #screen-intro p {
+    font-size: 1.3em;
+    color: #555;
+    max-width: 600px;
+    line-height: 1.5;
+    margin: 10px auto;
+  }
+  .big-btn {
+    margin-top: 20px;
+    padding: 18px 50px;
+    font-size: 1.6em;
+    font-family: inherit;
+    background: linear-gradient(135deg, #27AE60, #2ECC71);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #1E8449;
+    transition: all 0.1s;
+  }
+  .big-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #1E8449; }
+
+  /* ===== PRIZE SELECTION ===== */
+  #screen-prizes { background: linear-gradient(180deg, #FFF9E6 0%, #FFF5CC 100%); text-align: center; }
+  #screen-prizes h2 { font-size: 2.2em; color: #8E44AD; margin-bottom: 5px; }
+  #screen-prizes p { font-size: 1.1em; color: #555; margin-bottom: 15px; }
+  .prize-boxes {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 10px 0 20px;
+  }
+  .prize-box {
+    width: 160px;
+    background: white;
+    border-radius: 16px;
+    padding: 16px 10px;
+    cursor: pointer;
+    border: 4px solid transparent;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .prize-box:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+  .prize-box.selected { border-color: #3498DB; background: #EBF5FB; }
+  .prize-box .box-emoji { font-size: 3.5em; display: block; }
+  .prize-box .box-label { font-size: 1.1em; font-weight: bold; margin-top: 6px; }
+  .prize-box .box-contents { font-size: 0.9em; color: #777; margin-top: 4px; }
+  .prize-rank { font-size: 0.8em; color: #3498DB; font-weight: bold; margin-top: 4px; height: 18px; }
+  #rank-instruction { font-size: 1em; color: #E74C3C; margin-top: 5px; min-height: 22px; }
+
+  /* ===== GAME SCREEN ===== */
+  #screen-game {
+    background: linear-gradient(180deg, #87CEEB 0%, #B0E2FF 40%, #7EC850 100%);
+    padding: 0;
+    justify-content: flex-start;
+  }
+
+  /* HUD */
+  #hud {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(4px);
+    z-index: 10;
+  }
+  #hud .block-info { font-size: 1em; color: #333; }
+  #bone-counter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 1.2em;
+    color: #8B4513;
+    font-weight: bold;
+  }
+  #bone-counter .bone-icon { font-size: 1.5em; }
+
+  /* Park scene */
+  #park-scene {
+    width: 100%;
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    min-height: 460px;
+    overflow: hidden;
+  }
+
+  /* Sky gradient layers */
+  .sky-layer {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 65%;
+    background: linear-gradient(180deg, #5DADE2 0%, #AED6F1 100%);
+    z-index: 0;
+  }
+  /* Clouds */
+  .cloud {
+    position: absolute;
+    background: white;
+    border-radius: 50px;
+    opacity: 0.85;
+    z-index: 1;
+  }
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+  }
+  #cloud1 { width: 120px; height: 40px; top: 40px; left: 60px; }
+  #cloud1::before { width: 60px; height: 60px; top: -25px; left: 15px; }
+  #cloud1::after { width: 45px; height: 45px; top: -18px; left: 55px; }
+  #cloud2 { width: 90px; height: 30px; top: 70px; right: 80px; }
+  #cloud2::before { width: 45px; height: 45px; top: -20px; left: 10px; }
+  #cloud2::after { width: 35px; height: 35px; top: -14px; left: 40px; }
+
+  /* Ground */
+  .ground-layer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 38%;
+    background: linear-gradient(180deg, #7EC850 0%, #5D9E30 100%);
+    z-index: 2;
+    border-radius: 0 0 20px 20px;
+  }
+  /* Path */
+  .path {
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40%;
+    height: 18%;
+    background: linear-gradient(90deg, #C8A96E, #D4B97E, #C8A96E);
+    border-radius: 10px;
+    z-index: 3;
+    opacity: 0.7;
+  }
+
+  /* Characters */
+  .character {
+    position: absolute;
+    bottom: 35%;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: left 0.4s ease, right 0.4s ease;
+  }
+  .char-label {
+    font-size: 0.85em;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+    margin-bottom: 4px;
+  }
+  .char-emoji {
+    font-size: 3.5em;
+    line-height: 1;
+    filter: drop-shadow(2px 3px 4px rgba(0,0,0,0.3));
+  }
+
+  #char-you { left: 12%; }
+  #char-dog { right: 12%; }
+
+  /* Bone in center */
+  #bone-obj {
+    position: absolute;
+    bottom: 42%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 3em;
+    z-index: 9;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.3s;
+    filter: drop-shadow(2px 3px 6px rgba(0,0,0,0.4));
+    animation: boneBounce 0.5s ease-in-out infinite alternate;
+  }
+  @keyframes boneBounce { 0% { transform: translateX(-50%) translateY(0); } 100% { transform: translateX(-50%) translateY(-10px); } }
+  #bone-obj.hidden { opacity: 0; pointer-events: none; animation: none; }
+  #bone-obj.tapped { transform: translateX(-50%) scale(1.5); animation: none; }
+
+  /* Tap prompt */
+  #tap-prompt {
+    position: absolute;
+    bottom: 52%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #E67E22;
+    text-shadow: 1px 1px 0 white;
+    z-index: 11;
+    animation: fadeInOut 0.8s ease-in-out infinite alternate;
+    white-space: nowrap;
+  }
+  @keyframes fadeInOut { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+  #tap-prompt.hidden { display: none; }
+
+  /* Wait message */
+  #wait-msg {
+    position: absolute;
+    bottom: 57%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.2em;
+    color: #555;
+    text-shadow: 1px 1px 0 white;
+    z-index: 11;
+    white-space: nowrap;
+  }
+  #wait-msg.hidden { display: none; }
+
+  /* Running animation */
+  #run-indicator {
+    position: absolute;
+    bottom: 48%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5em;
+    z-index: 12;
+    display: none;
+  }
+
+  /* Prize box area */
+  #prize-area {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .mini-prize-box {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 10px;
+    padding: 4px 8px;
+    font-size: 0.85em;
+    border: 2px solid #ccc;
+  }
+  .mini-prize-box.target { border-color: #3498DB; background: rgba(52,152,219,0.15); }
+  .bone-slots {
+    display: flex;
+    gap: 3px;
+  }
+  .bone-slot { font-size: 1em; opacity: 0.3; }
+  .bone-slot.filled { opacity: 1; }
+
+  /* ===== FEEDBACK SCREEN ===== */
+  #feedback-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    pointer-events: none;
+  }
+  #feedback-msg {
+    font-size: 2.5em;
+    font-weight: bold;
+    padding: 15px 40px;
+    border-radius: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    animation: popIn 0.3s ease;
+    display: none;
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.5); opacity: 0; }
+    80% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  #feedback-msg.win {
+    background: linear-gradient(135deg, #2ECC71, #27AE60);
+    color: white;
+    box-shadow: 0 8px 20px rgba(46,204,113,0.5);
+  }
+  #feedback-msg.lose {
+    background: linear-gradient(135deg, #E74C3C, #C0392B);
+    color: white;
+    box-shadow: 0 8px 20px rgba(231,76,60,0.5);
+  }
+
+  /* ===== REST SCREEN ===== */
+  #rest-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(20, 30, 60, 0.75);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 25;
+    display: none;
+  }
+  #rest-overlay .zzz-text {
+    font-size: 3em;
+    color: #AED6F1;
+    animation: floatZzz 1.5s ease-in-out infinite alternate;
+  }
+  @keyframes floatZzz { 0% { transform: translateY(0) rotate(-5deg); } 100% { transform: translateY(-15px) rotate(5deg); } }
+  #rest-overlay p { color: white; font-size: 1.2em; margin-top: 10px; }
+
+  /* ===== BLOCK SUMMARY ===== */
+  #screen-block-summary {
+    background: linear-gradient(180deg, #1A1A2E 0%, #16213E 100%);
+    text-align: center;
+    color: white;
+  }
+  #screen-block-summary h2 { font-size: 2em; margin-bottom: 10px; color: #F1C40F; }
+  #bone-summary {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    font-size: 2.5em;
+    margin: 20px 0;
+  }
+  #bone-summary .bone-slot { opacity: 0.2; transition: opacity 0.3s; }
+  #bone-summary .bone-slot.filled { opacity: 1; }
+  #screen-block-summary p { font-size: 1.2em; color: #BDC3C7; margin-bottom: 20px; }
+
+  /* ===== MOOD RATING ===== */
+  #screen-mood {
+    background: linear-gradient(180deg, #FFECD2 0%, #FCB69F 100%);
+    text-align: center;
+  }
+  #screen-mood h2 { font-size: 2em; color: #6C3483; margin-bottom: 8px; }
+  #screen-mood p { font-size: 1.1em; color: #5D6D7E; margin-bottom: 20px; }
+  .face-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .face-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: white;
+    border: 4px solid transparent;
+    border-radius: 16px;
+    padding: 12px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 70px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  }
+  .face-btn:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+  .face-btn.selected { border-color: #8E44AD; background: #F4ECF7; }
+  .face-emoji { font-size: 2.8em; }
+  .face-label { font-size: 0.75em; color: #777; margin-top: 4px; }
+  #mood-continue { margin-top: 20px; display: none; }
+
+  /* ===== END SCREEN ===== */
+  #screen-end {
+    background: linear-gradient(135deg, #1A1A2E 0%, #16213E 50%, #0F3460 100%);
+    text-align: center;
+    color: white;
+  }
+  #screen-end h1 { font-size: 2.5em; color: #F1C40F; text-shadow: 3px 3px 0 #D4A017; margin-bottom: 10px; }
+  #screen-end p { font-size: 1.2em; color: #BDC3C7; margin: 8px 0; max-width: 500px; }
+  #final-stars { font-size: 3em; margin: 15px 0; animation: spin 2s linear infinite; }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  /* Results table */
+  #results-section {
+    margin-top: 20px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 15px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    text-align: left;
+  }
+  #results-section h3 { color: #F1C40F; margin-bottom: 8px; font-size: 1.1em; }
+  #results-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+  #results-table th { color: #AED6F1; border-bottom: 1px solid rgba(255,255,255,0.2); padding: 4px 8px; }
+  #results-table td { padding: 4px 8px; color: #ECF0F1; }
+  #results-table tr:nth-child(even) td { background: rgba(255,255,255,0.05); }
+
+  /* Progress bar */
+  #progress-bar-wrap {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: rgba(0,0,0,0.1);
+    z-index: 30;
+  }
+  #progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #2ECC71, #27AE60);
+    transition: width 0.5s ease;
+    border-radius: 0 3px 3px 0;
+  }
+
+  /* Loading */
+  #loading-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #87CEEB;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    font-family: 'Fredoka One', cursive;
+  }
+  #loading-screen h2 { font-size: 2em; color: #2C3E50; margin-top: 15px; }
+  .loading-bone { font-size: 3em; animation: loadBounce 0.6s ease-in-out infinite alternate; }
+  @keyframes loadBounce { 0% { transform: translateY(0); } 100% { transform: translateY(-20px); } }
+
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="loading-bone">🦴</div>
+  <h2>Loading FETCH...</h2>
+</div>
+
+<div id="app">
+  <div id="progress-bar-wrap"><div id="progress-bar" style="width:0%"></div></div>
+
+  <!-- INTRO SCREEN -->
+  <div id="screen-intro" class="screen active">
+    <h1>🐕 FETCH! 🦴</h1>
+    <p>You're racing <strong>Sparky the Dog</strong> to catch bones!</p>
+    <p>Win bones to fill up your prize box and earn an awesome prize!</p>
+    <div style="font-size:4em; margin:10px 0;">🧒 🦴 🐕</div>
+    <p style="font-size:0.95em; color:#888;">Tap the bone <strong>as fast as you can</strong> when it appears!</p>
+    <button class="big-btn" onclick="showPrizeSelection()">Let's Play! →</button>
+  </div>
+
+  <!-- PRIZE SELECTION -->
+  <div id="screen-prizes" class="screen">
+    <h2>🎁 Choose Your Prize Goal!</h2>
+    <p>Which prize box do you want to win? Tap to rank them!</p>
+    <div class="prize-boxes">
+      <div class="prize-box" id="box-blue" onclick="rankBox('blue')">
+        <span class="box-emoji">🔵</span>
+        <div class="box-label" style="color:#2980B9">Blue Box</div>
+        <div class="box-contents">🧸 New Toys!</div>
+        <div class="prize-rank" id="rank-blue"></div>
+      </div>
+      <div class="prize-box" id="box-red" onclick="rankBox('red')">
+        <span class="box-emoji">🔴</span>
+        <div class="box-label" style="color:#C0392B">Red Box</div>
+        <div class="box-contents">⭐ New Stickers!</div>
+        <div class="prize-rank" id="rank-red"></div>
+      </div>
+      <div class="prize-box" id="box-yellow" onclick="rankBox('yellow')">
+        <span class="box-emoji">🟡</span>
+        <div class="box-label" style="color:#D4AC0D">Yellow Box</div>
+        <div class="box-contents">🖍️ Broken Crayons</div>
+        <div class="prize-rank" id="rank-yellow"></div>
+      </div>
+    </div>
+    <div id="rank-instruction">Tap to rank from your favorite (1st) to least favorite (3rd)!</div>
+    <p style="font-size:0.95em; color:#777; margin-top:10px;">
+      To win the <strong style="color:#2980B9">Blue Box</strong>, you need to fill it with 5 bones! 🦴🦴🦴🦴🦴
+    </p>
+    <button class="big-btn" id="start-game-btn" onclick="startGame()" style="display:none">
+      Start Playing! →
+    </button>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="screen-game" class="screen">
+    <div id="hud">
+      <div class="block-info" id="block-info">Block 1 of 7</div>
+      <div id="bone-counter">
+        <span class="bone-icon">🦴</span>
+        <span id="bone-count-text">0 / 5</span>
+      </div>
+    </div>
+
+    <div id="park-scene">
+      <div class="sky-layer"></div>
+      <div id="cloud1" class="cloud"></div>
+      <div id="cloud2" class="cloud"></div>
+      <div class="ground-layer"></div>
+      <div class="path"></div>
+
+      <!-- Prize box display -->
+      <div id="prize-area">
+        <div class="mini-prize-box target">
+          <span>🔵</span>
+          <span>Goal:</span>
+          <div class="bone-slots" id="prize-bones">
+            <span class="bone-slot" id="pb0">🦴</span>
+            <span class="bone-slot" id="pb1">🦴</span>
+            <span class="bone-slot" id="pb2">🦴</span>
+            <span class="bone-slot" id="pb3">🦴</span>
+            <span class="bone-slot" id="pb4">🦴</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Characters -->
+      <div class="character" id="char-you">
+        <div class="char-label">You</div>
+        <div class="char-emoji">🧒</div>
+      </div>
+      <div class="character" id="char-dog">
+        <div class="char-label">Sparky</div>
+        <div class="char-emoji">🐕</div>
+      </div>
+
+      <!-- Bone -->
+      <div id="bone-obj" class="hidden" onclick="tapBone()">🦴</div>
+      <div id="tap-prompt" class="hidden">👆 TAP the BONE!</div>
+      <div id="wait-msg" class="hidden">Get ready...</div>
+
+      <!-- Feedback overlay -->
+      <div id="feedback-overlay">
+        <div id="feedback-msg"></div>
+      </div>
+
+      <!-- Rest overlay -->
+      <div id="rest-overlay">
+        <div class="zzz-text">💤 💤 💤</div>
+        <p>Taking a little nap...</p>
+      </div>
+
+      <!-- Phase label -->
+      <div id="phase-label" style="position:absolute;top:60px;left:50%;transform:translateX(-50%);font-size:0.9em;color:rgba(255,255,255,0.7);z-index:5;"></div>
+    </div>
+  </div>
+
+  <!-- BLOCK SUMMARY -->
+  <div id="screen-block-summary" class="screen">
+    <h2 id="block-summary-title">🎉 Block Complete!</h2>
+    <p id="block-summary-desc">Here are your bones so far!</p>
+    <div id="bone-summary"></div>
+    <p id="block-summary-count" style="font-size:1.5em; color:#F1C40F; margin-bottom:5px;"></p>
+    <p style="font-size:1em; color:#95A5A6;">How are you feeling?</p>
+  </div>
+
+  <!-- MOOD RATING -->
+  <div id="screen-mood" class="screen">
+    <h2>How do you feel right now?</h2>
+    <p>Tap the face that shows how you're feeling!</p>
+    <div class="face-row">
+      <div class="face-btn" onclick="selectMood(1, this)">
+        <span class="face-emoji">😁</span>
+        <span class="face-label">Very Happy</span>
+      </div>
+      <div class="face-btn" onclick="selectMood(2, this)">
+        <span class="face-emoji">😊</span>
+        <span class="face-label">Happy</span>
+      </div>
+      <div class="face-btn" onclick="selectMood(3, this)">
+        <span class="face-emoji">🙂</span>
+        <span class="face-label">OK</span>
+      </div>
+      <div class="face-btn" onclick="selectMood(4, this)">
+        <span class="face-emoji">😐</span>
+        <span class="face-label">Neutral</span>
+      </div>
+      <div class="face-btn" onclick="selectMood(5, this)">
+        <span class="face-emoji">😟</span>
+        <span class="face-label">A little sad</span>
+      </div>
+      <div class="face-btn" onclick="selectMood(6, this)">
+        <span class="face-emoji">😢</span>
+        <span class="face-label">Sad</span>
+      </div>
+      <div class="face-btn" onclick="selectMood(7, this)">
+        <span class="face-emoji">😡</span>
+        <span class="face-label">Upset/Mad</span>
+      </div>
+    </div>
+    <button class="big-btn" id="mood-continue" onclick="afterMoodRating()">Continue →</button>
+  </div>
+
+  <!-- END SCREEN -->
+  <div id="screen-end" class="screen">
+    <div id="final-stars">⭐</div>
+    <h1>Amazing Job! 🎉</h1>
+    <p>You finished the FETCH game!</p>
+    <p id="final-bones-msg"></p>
+    <div id="results-section">
+      <h3>📊 Your Results</h3>
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th>Block</th>
+            <th>Type</th>
+            <th>Trial</th>
+            <th>Outcome</th>
+            <th>RT (ms)</th>
+            <th>Mood</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+    <button class="big-btn" onclick="exportData()" style="margin-top:15px; background:linear-gradient(135deg,#3498DB,#2980B9)">
+      💾 Save Data
+    </button>
+  </div>
+
+</div><!-- end #app -->
+
+<script>
+// ============================================================
+// FETCH TASK - JavaScript Engine
+// Based on Perlman Lab FETCH paradigm (WashU)
+// Web adaptation for Qualtrics/iPad embedding
+// ============================================================
+
+// ----- TASK STRUCTURE -----
+// 7 blocks: blocks 1,3,5 = WIN blocks; blocks 2,4,6 = LOSE blocks; block 7 = WIN
+// Each block: 6 trials (7 for last block)
+// WIN block: participant wins 5/6 (or 6/7), loses 1
+// LOSE block: participant loses 5/6, wins 1
+// Trial phases: delay (wait) → catch (tap bone) → feedback → rest
+
+const BLOCKS = [
+  { type: 'win',  trials: 6, wins: 5, loses: 1 },
+  { type: 'lose', trials: 6, wins: 1, loses: 5 },
+  { type: 'win',  trials: 6, wins: 5, loses: 1 },
+  { type: 'lose', trials: 6, wins: 1, loses: 5 },
+  { type: 'win',  trials: 6, wins: 5, loses: 1 },
+  { type: 'lose', trials: 6, wins: 1, loses: 5 },
+  { type: 'win',  trials: 7, wins: 6, loses: 1 },
+];
+
+// Timing (ms) — matches original task, note: catch=2000, feedback=2000, delay+rest≈6000
+const DELAY_MIN = 2500;
+const DELAY_MAX = 3500;
+const CATCH_DURATION = 2000;
+const FEEDBACK_DURATION = 2000;
+const REST_DURATION = 2500;
+const BLOCK_SUMMARY_DURATION = 4000;
+const MOOD_DURATION = 12000;  // auto-advance after 12s if no selection
+
+// ----- STATE -----
+let state = {
+  currentBlock: 0,
+  currentTrial: 0,
+  bonesCollected: 0,
+  maxBones: 5,         // need 5 to win blue box
+  trialOutcomes: [],   // { block, blockType, trial, outcome, reactionTime, timestamp }
+  moodRatings: [],     // { block, blockType, mood, timestamp }
+  blockPlan: [],       // for current block: array of 'win'|'lose'
+  prizeRanking: {},
+  participantId: null,
+  sessionStart: null,
+  boneAppearTime: null,
+  tapped: false,
+  moodSelected: null,
+  moodTimer: null,
+  phase: 'idle',       // idle | delay | catch | feedback | rest
+};
+
+// ----- UTILITY -----
+function shuffle(arr) {
+  let a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function randInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function updateProgress() {
+  const totalTrials = BLOCKS.reduce((s, b) => s + b.trials, 0);
+  const completedTrials = state.trialOutcomes.length;
+  document.getElementById('progress-bar').style.width = (completedTrials / totalTrials * 100) + '%';
+}
+
+// ----- PRIZE RANKING -----
+let rankOrder = [];
+function rankBox(color) {
+  if (rankOrder.includes(color)) {
+    // Remove if already ranked (toggle off)
+    rankOrder = rankOrder.filter(c => c !== color);
+  } else {
+    if (rankOrder.length < 3) rankOrder.push(color);
+  }
+  // Update display
+  ['blue', 'red', 'yellow'].forEach(c => {
+    const idx = rankOrder.indexOf(c);
+    const el = document.getElementById(`rank-${c}`);
+    const box = document.getElementById(`box-${c}`);
+    if (idx >= 0) {
+      el.textContent = ['⭐ 1st Choice', '✌️ 2nd Choice', '👌 3rd Choice'][idx];
+      box.classList.add('selected');
+    } else {
+      el.textContent = '';
+      box.classList.remove('selected');
+    }
+  });
+  state.prizeRanking = { first: rankOrder[0], second: rankOrder[1], third: rankOrder[2] };
+  const instr = document.getElementById('rank-instruction');
+  if (rankOrder.length === 3) {
+    instr.textContent = '✅ All ranked! Ready to play!';
+    instr.style.color = '#27AE60';
+    document.getElementById('start-game-btn').style.display = 'inline-block';
+  } else {
+    instr.textContent = `Tap to rank! (${rankOrder.length}/3 ranked)`;
+    instr.style.color = '#E74C3C';
+    document.getElementById('start-game-btn').style.display = 'none';
+  }
+}
+
+function showPrizeSelection() { showScreen('screen-prizes'); }
+
+// ----- GAME START -----
+function startGame() {
+  state.sessionStart = Date.now();
+  state.participantId = 'P_' + Date.now();
+  state.currentBlock = 0;
+  state.currentTrial = 0;
+  state.bonesCollected = 0;
+  state.trialOutcomes = [];
+  state.moodRatings = [];
+  showScreen('screen-game');
+  startBlock();
+}
+
+function buildBlockPlan(blockIdx) {
+  const b = BLOCKS[blockIdx];
+  let plan = [];
+  for (let i = 0; i < b.wins; i++) plan.push('win');
+  for (let i = 0; i < b.loses; i++) plan.push('lose');
+  return shuffle(plan);
+}
+
+function startBlock() {
+  const blockIdx = state.currentBlock;
+  const b = BLOCKS[blockIdx];
+  state.blockPlan = buildBlockPlan(blockIdx);
+  state.currentTrial = 0;
+
+  // Update HUD
+  document.getElementById('block-info').textContent = `Block ${blockIdx + 1} of ${BLOCKS.length}`;
+  updateBoneDisplay();
+
+  // Brief delay before first trial
+  setTimeout(runTrial, 600);
+}
+
+function updateBoneDisplay() {
+  document.getElementById('bone-count-text').textContent = `${state.bonesCollected} / ${state.maxBones}`;
+  // Update mini prize box slots
+  for (let i = 0; i < 5; i++) {
+    const slot = document.getElementById(`pb${i}`);
+    slot.classList.toggle('filled', i < state.bonesCollected);
+  }
+}
+
+// ----- TRIAL ENGINE -----
+function runTrial() {
+  const blockIdx = state.currentBlock;
+  const trialIdx = state.currentTrial;
+
+  if (trialIdx >= BLOCKS[blockIdx].trials) {
+    // Block complete → show summary
+    showBlockSummary();
+    return;
+  }
+
+  const outcome = state.blockPlan[trialIdx]; // 'win' or 'lose'
+  state.phase = 'delay';
+  state.tapped = false;
+
+  // DELAY phase: show park scene, no bone
+  document.getElementById('bone-obj').className = 'hidden';
+  document.getElementById('tap-prompt').className = 'hidden';
+  document.getElementById('wait-msg').className = '';
+  document.getElementById('wait-msg').textContent = 'Get ready... 🐾';
+  document.getElementById('feedback-msg').style.display = 'none';
+  hideRest();
+
+  const delayDur = randInt(DELAY_MIN, DELAY_MAX);
+
+  setTimeout(() => {
+    // CATCH phase: show bone
+    state.phase = 'catch';
+    state.boneAppearTime = Date.now();
+    document.getElementById('wait-msg').className = 'hidden';
+    document.getElementById('bone-obj').className = ''; // visible
+    document.getElementById('tap-prompt').className = '';
+
+    // Auto-resolve after CATCH_DURATION (dog catches it if not tapped)
+    const catchTimer = setTimeout(() => {
+      if (state.phase === 'catch' && !state.tapped) {
+        // Player didn't tap in time — dog wins this trial regardless of plan
+        // (but we'll honor the plan for rigging; if outcome is 'win', player needed to tap faster)
+        resolveTrial(outcome === 'win' ? 'lose' : 'lose', CATCH_DURATION, blockIdx, trialIdx);
+      }
+    }, CATCH_DURATION);
+
+    // Store timer ref so tapBone can clear it
+    state._catchTimer = catchTimer;
+  }, delayDur);
+}
+
+function tapBone() {
+  if (state.phase !== 'catch' || state.tapped) return;
+  state.tapped = true;
+  clearTimeout(state._catchTimer);
+
+  const rt = Date.now() - state.boneAppearTime;
+  const blockIdx = state.currentBlock;
+  const trialIdx = state.currentTrial;
+  const outcome = state.blockPlan[trialIdx]; // honor the pre-set plan
+
+  resolveTrial(outcome, rt, blockIdx, trialIdx);
+}
+
+function resolveTrial(outcome, rt, blockIdx, trialIdx) {
+  state.phase = 'feedback';
+
+  // Animate characters
+  if (outcome === 'win') {
+    document.getElementById('char-you').style.left = '35%';
+    document.getElementById('char-dog').style.right = '35%';
+  } else {
+    document.getElementById('char-you').style.left = '8%';
+    document.getElementById('char-dog').style.right = '8%';
+  }
+
+  // Hide bone & prompt
+  document.getElementById('bone-obj').className = 'hidden';
+  document.getElementById('tap-prompt').className = 'hidden';
+
+  // FEEDBACK
+  const fbMsg = document.getElementById('feedback-msg');
+  if (outcome === 'win') {
+    fbMsg.className = 'win';
+    fbMsg.textContent = '🦴 You got it! +1 Bone!';
+    state.bonesCollected = Math.min(state.bonesCollected + 1, state.maxBones);
+  } else {
+    fbMsg.className = 'lose';
+    fbMsg.textContent = '🐕 Sparky got it! -1 Bone!';
+    state.bonesCollected = Math.max(state.bonesCollected - 1, 0);
+  }
+  fbMsg.style.display = 'block';
+  updateBoneDisplay();
+
+  // Record data
+  state.trialOutcomes.push({
+    block: blockIdx + 1,
+    blockType: BLOCKS[blockIdx].type,
+    trial: trialIdx + 1,
+    outcome: outcome,
+    reactionTime: rt,
+    tapped: state.tapped,
+    timestamp: new Date().toISOString(),
+    bonesAfter: state.bonesCollected
+  });
+  updateProgress();
+
+  setTimeout(() => {
+    fbMsg.style.display = 'none';
+    // Reset characters
+    document.getElementById('char-you').style.left = '12%';
+    document.getElementById('char-dog').style.right = '12%';
+
+    // REST phase
+    state.phase = 'rest';
+    showRest();
+
+    setTimeout(() => {
+      hideRest();
+      state.currentTrial++;
+      runTrial();
+    }, REST_DURATION);
+  }, FEEDBACK_DURATION);
+}
+
+function showRest() {
+  document.getElementById('rest-overlay').style.display = 'flex';
+}
+function hideRest() {
+  document.getElementById('rest-overlay').style.display = 'none';
+}
+
+// ----- BLOCK SUMMARY -----
+function showBlockSummary() {
+  const blockIdx = state.currentBlock;
+  const b = BLOCKS[blockIdx];
+  const title = document.getElementById('block-summary-title');
+  const desc = document.getElementById('block-summary-desc');
+  const count = document.getElementById('block-summary-count');
+
+  if (b.type === 'win') {
+    title.textContent = '🎉 Great job!';
+  } else {
+    title.textContent = '😤 Tough round!';
+  }
+  desc.textContent = `End of Block ${blockIdx + 1}. You have:`;
+  count.textContent = `🦴 × ${state.bonesCollected}`;
+
+  // Render bone slots
+  const boneDiv = document.getElementById('bone-summary');
+  boneDiv.innerHTML = '';
+  for (let i = 0; i < state.maxBones; i++) {
+    const span = document.createElement('span');
+    span.className = 'bone-slot' + (i < state.bonesCollected ? ' filled' : '');
+    span.textContent = '🦴';
+    boneDiv.appendChild(span);
+  }
+
+  showScreen('screen-block-summary');
+
+  // Auto-advance to mood rating after 4s
+  setTimeout(() => {
+    showMoodRating();
+  }, BLOCK_SUMMARY_DURATION);
+}
+
+// ----- MOOD RATING -----
+let moodAutoTimer = null;
+function showMoodRating() {
+  state.moodSelected = null;
+  document.querySelectorAll('.face-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('mood-continue').style.display = 'none';
+  showScreen('screen-mood');
+
+  // Auto-advance after MOOD_DURATION if no selection
+  clearTimeout(moodAutoTimer);
+  moodAutoTimer = setTimeout(() => {
+    afterMoodRating();
+  }, MOOD_DURATION);
+}
+
+function selectMood(score, el) {
+  clearTimeout(moodAutoTimer);
+  state.moodSelected = score;
+  document.querySelectorAll('.face-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('mood-continue').style.display = 'inline-block';
+
+  // Auto-continue after 1.5s
+  setTimeout(afterMoodRating, 1500);
+}
+
+function afterMoodRating() {
+  clearTimeout(moodAutoTimer);
+  const blockIdx = state.currentBlock;
+  state.moodRatings.push({
+    block: blockIdx + 1,
+    blockType: BLOCKS[blockIdx].type,
+    mood: state.moodSelected,
+    timestamp: new Date().toISOString()
+  });
+
+  state.currentBlock++;
+
+  if (state.currentBlock >= BLOCKS.length) {
+    showEndScreen();
+  } else {
+    showScreen('screen-game');
+    document.getElementById('block-info').textContent = `Block ${state.currentBlock + 1} of ${BLOCKS.length}`;
+    startBlock();
+  }
+}
+
+// ----- END SCREEN -----
+function showEndScreen() {
+  document.getElementById('final-bones-msg').textContent =
+    `You ended with ${state.bonesCollected} out of ${state.maxBones} bones!` +
+    (state.bonesCollected >= state.maxBones ? ' 🎁 You win the Blue Box!' : '');
+
+  // Populate results table
+  const tbody = document.getElementById('results-body');
+  tbody.innerHTML = '';
+  state.trialOutcomes.forEach(t => {
+    const moodEntry = state.moodRatings.find(m => m.block === t.block);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${t.block}</td>
+      <td>${t.blockType}</td>
+      <td>${t.trial}</td>
+      <td style="color:${t.outcome==='win'?'#2ECC71':'#E74C3C'}">${t.outcome}</td>
+      <td>${t.reactionTime}</td>
+      <td>${moodEntry ? moodEntry.mood : '—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  showScreen('screen-end');
+  updateProgress();
+
+  // Post data to parent (Qualtrics)
+  postToQualtrics();
+}
+
+// ----- QUALTRICS INTEGRATION -----
+function postToQualtrics() {
+  const data = {
+    participantId: state.participantId,
+    sessionStart: state.sessionStart,
+    prizeRanking: state.prizeRanking,
+    finalBones: state.bonesCollected,
+    trialData: state.trialOutcomes,
+    moodData: state.moodRatings,
+    summary: {
+      totalTrials: state.trialOutcomes.length,
+      totalWins: state.trialOutcomes.filter(t => t.outcome === 'win').length,
+      totalLosses: state.trialOutcomes.filter(t => t.outcome === 'lose').length,
+      avgRT_win: avg(state.trialOutcomes.filter(t=>t.outcome==='win').map(t=>t.reactionTime)),
+      avgRT_lose: avg(state.trialOutcomes.filter(t=>t.outcome==='lose').map(t=>t.reactionTime)),
+      moodByBlock: state.moodRatings
+    }
+  };
+
+  const jsonStr = JSON.stringify(data);
+
+  // Method 1: postMessage to parent window (Qualtrics)
+  try {
+    window.parent.postMessage({ type: 'FETCH_COMPLETE', data: data }, '*');
+  } catch(e) {}
+
+  // Method 2: Set Qualtrics embedded data (if running inside Qualtrics)
+  try {
+    if (window.parent.Qualtrics && window.parent.Qualtrics.SurveyEngine) {
+      window.parent.Qualtrics.SurveyEngine.setEmbeddedData('FETCH_Data', jsonStr);
+      window.parent.Qualtrics.SurveyEngine.setEmbeddedData('FETCH_FinalBones', state.bonesCollected);
+      window.parent.Qualtrics.SurveyEngine.setEmbeddedData('FETCH_TotalWins',
+        state.trialOutcomes.filter(t => t.outcome === 'win').length);
+    }
+  } catch(e) {}
+
+  // Store in sessionStorage for download
+  try { sessionStorage.setItem('fetch_results', jsonStr); } catch(e) {}
+}
+
+function avg(arr) {
+  if (!arr.length) return null;
+  return Math.round(arr.reduce((a,b) => a+b, 0) / arr.length);
+}
+
+function exportData() {
+  const data = {
+    participantId: state.participantId,
+    sessionStart: new Date(state.sessionStart).toISOString(),
+    prizeRanking: state.prizeRanking,
+    finalBones: state.bonesCollected,
+    trials: state.trialOutcomes,
+    moodRatings: state.moodRatings
+  };
+
+  // CSV export
+  let csv = 'ParticipantID,SessionStart,Block,BlockType,Trial,Outcome,ReactionTime_ms,Tapped,BonesAfter,Timestamp\n';
+  state.trialOutcomes.forEach(t => {
+    csv += `${state.participantId},${new Date(state.sessionStart).toISOString()},${t.block},${t.blockType},${t.trial},${t.outcome},${t.reactionTime},${t.tapped},${t.bonesAfter},${t.timestamp}\n`;
+  });
+  csv += '\nBlock,BlockType,MoodRating,Timestamp\n';
+  state.moodRatings.forEach(m => {
+    csv += `${m.block},${m.blockType},${m.mood},${m.timestamp}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `FETCH_${state.participantId}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ----- INIT -----
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loading-screen').style.display = 'none';
+  }, 800);
+});
+
+// Handle postMessage from Qualtrics (e.g., to inject participant ID)
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'FETCH_INIT') {
+    state.participantId = event.data.participantId || state.participantId;
+  }
+});
+
+/* ============================================================
+   QUALTRICS EMBEDDING INSTRUCTIONS
+   ============================================================
+   1. In your Qualtrics survey, add a new question of type "Text/Graphic"
+   2. Click "HTML Source" and paste:
+      <iframe src="YOUR_HOSTED_URL/fetch_task.html"
+              width="820" height="650"
+              frameborder="0"
+              style="border:none;border-radius:12px;overflow:hidden;">
+      </iframe>
+   3. Add the following JavaScript to the question's JS:
+      Qualtrics.SurveyEngine.addOnload(function() {
+        window.addEventListener('message', function(e) {
+          if (e.data && e.data.type === 'FETCH_COMPLETE') {
+            Qualtrics.SurveyEngine.setEmbeddedData('FETCH_Data', JSON.stringify(e.data.data));
+            Qualtrics.SurveyEngine.setEmbeddedData('FETCH_Bones', e.data.data.finalBones);
+            Qualtrics.SurveyEngine.setEmbeddedData('FETCH_Wins', e.data.data.summary.totalWins);
+            Qualtrics.SurveyEngine.setEmbeddedData('FETCH_AvgRT', e.data.data.summary.avgRT_win);
+          }
+        });
+      });
+   4. In Survey Flow, add Embedded Data fields before your question block:
+      - FETCH_Data (Text)
+      - FETCH_Bones (Number)
+      - FETCH_Wins (Number)
+      - FETCH_AvgRT (Number)
+   5. To host this file, upload it to a public web server (GitHub Pages,
+      your university server, etc.) or use Qualtrics' file hosting.
+   ============================================================ */
+</script>
+</body>
+</html>

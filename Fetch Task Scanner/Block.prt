@@ -1,0 +1,38 @@
+
+FileVersion:        1
+
+ResolutionOfTime:   msec
+
+Experiment:         Fetch Task 
+
+BackgroundColor:    0 0 0
+TextColor:          255 255 255
+TimeCourseColor:    255 255 255
+TimeCourseThick:    3
+ReferenceFuncColor: 0 0 80
+ReferenceFuncThick: 3
+
+NrOfConditions:  2
+
+Win
+4
+0	61946
+150065	213558
+304748	360270
+453603	521550
+
+
+Color: 200 46 23
+
+Lose
+3
+77945	134066
+229557	288749
+376269	437604
+
+
+
+Color: 238 243 33
+
+
+

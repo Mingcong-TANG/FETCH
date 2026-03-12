@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>FETCH Task</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
+  body {
+    font-family: 'Nunito', 'Comic Sans MS', cursive;
+    background: #2c5f8a;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; overflow: hidden; user-select: none;
+  }
+  #app {
+    width: 800px; max-width: 100vw; min-height: 600px;
+    position: relative; overflow: hidden;
+    border-radius: 20px; box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+  }
+  .screen {
+    display: none; width: 100%; min-height: 600px;
+    position: relative; flex-direction: column;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .screen.active { display: flex; }
+
+  /* INTRO */
+  #screen-intro { background: linear-gradient(160deg,#fff8e7 0%,#ffe8b0 100%); text-align:center; }
+  #screen-intro h1 {
+    font-size:3.2em; color:#d46b00; font-weight:900;
+    text-shadow:3px 3px 0 #f9a825,5px 5px 0 rgba(0,0,0,0.1);
+    margin-bottom:8px; letter-spacing:2px;
+  }
+  #screen-intro .subtitle { font-size:1.2em; color:#5d3f00; max-width:560px; line-height:1.6; margin:8px auto; }
+  .intro-scene {
+    width:340px; height:190px; margin:14px auto;
+    border-radius:16px; overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.22);
+  }
+  .intro-scene img { width:100%; height:100%; object-fit:cover; }
+
+  /* PID */
+  #screen-pid { background:linear-gradient(160deg,#fff8e7 0%,#ffe8b0 100%); text-align:center; }
+  #screen-pid h2 { font-size:2em; color:#d46b00; font-weight:900; margin-bottom:12px; }
+  #screen-pid p { font-size:1.1em; color:#5d3f00; margin-bottom:20px; }
+  #pid-input {
+    font-family:'Nunito',cursive; font-size:1.4em;
+    padding:12px 24px; border:3px solid #f9a825; border-radius:12px;
+    outline:none; text-align:center; width:260px; background:white; color:#333;
+  }
+  #pid-input:focus { border-color:#d46b00; }
+
+  /* BIG BUTTON */
+  .big-btn {
+    margin-top:18px; padding:16px 48px; font-size:1.4em;
+    font-family:'Nunito',cursive; font-weight:900;
+    background:linear-gradient(135deg,#27AE60,#2ECC71); color:white;
+    border:none; border-radius:50px; cursor:pointer;
+    box-shadow:0 6px 0 #1a7a42,0 8px 20px rgba(39,174,96,0.35);
+    transition:all 0.1s; letter-spacing:0.5px;
+  }
+  .big-btn:active { transform:translateY(4px); box-shadow:0 2px 0 #1a7a42; }
+  .big-btn:disabled { opacity:0.45; cursor:not-allowed; }
+
+  /* PRIZES */
+  #screen-prizes { background:linear-gradient(160deg,#f0f7ff 0%,#ddeeff 100%); text-align:center; }
+  #screen-prizes h2 { font-size:2.2em; color:#1a4a8a; font-weight:900; margin-bottom:4px; }
+  #screen-prizes > p { font-size:1.05em; color:#3a5a8a; margin-bottom:14px; }
+  .prize-boxes { display:flex; gap:22px; justify-content:center; flex-wrap:wrap; margin:8px 0 16px; }
+  .prize-box {
+    width:170px; background:white; border-radius:18px;
+    padding:14px 10px 10px; cursor:pointer; border:4px solid transparent;
+    transition:all 0.2s; box-shadow:0 4px 14px rgba(0,0,0,0.12);
+  }
+  .prize-box:hover { transform:translateY(-5px); box-shadow:0 10px 24px rgba(0,0,0,0.18); }
+  .prize-box.selected { border-width:5px; transform:translateY(-5px); box-shadow:0 10px 24px rgba(0,0,0,0.18); }
+  #box-blue { background:#dbeeff; }
+  #box-red { background:#ffe1dc; }
+  #box-yellow { background:#fff4bf; }
+  #box-blue.selected { border-color:#2980B9; background:#dbeeff; }
+  #box-red.selected { border-color:#C0392B; background:#ffe1dc; }
+  #box-yellow.selected { border-color:#c89000; background:#fff4bf; }
+  .prize-box img { width:100px; height:80px; object-fit:contain; margin:0 auto; display:block; }
+  .box-label { font-size:1.05em; font-weight:900; margin-top:6px; }
+  .box-contents { font-size:0.88em; color:#666; margin-top:3px; }
+  .prize-rank { font-size:0.82em; color:#3498DB; font-weight:900; margin-top:4px; height:18px; }
+  #rank-instruction { font-size:1em; color:#E74C3C; font-weight:700; margin-top:4px; min-height:22px; }
+
+  /* GAME */
+  #screen-game { padding:0; justify-content:flex-start; background:#000; }
+  #hud {
+    width:100%; display:flex; align-items:center; justify-content:space-between;
+    padding:8px 18px; background:rgba(0,0,0,0.6);
+    backdrop-filter:blur(4px); z-index:10; position:absolute; top:0; left:0;
+  }
+  #hud .block-info { font-size:0.95em; color:#fff; font-weight:700; }
+  #bone-counter { display:flex; align-items:center; gap:8px; }
+  .bone-pip {
+    width:22px; height:22px; border-radius:50%;
+    background:rgba(255,255,255,0.18); border:2px solid rgba(255,255,255,0.35);
+    transition:all 0.35s;
+  }
+  .bone-pip.filled {
+    background:#f9a825; border-color:#e65100;
+    box-shadow:0 0 8px rgba(249,168,37,0.85);
+  }
+  #park-scene { width:100%; height:600px; position:relative; overflow:hidden; }
+  #bg-img { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:0; }
+  #catch-frame { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; object-position:center center; z-index:1; display:none; background:transparent; image-rendering:auto; }
+  #bone-target {
+    position:absolute; z-index:15; cursor:pointer; display:none;
+    pointer-events:none;   /* disabled by default; only enabled when bone is tappable */
+    transition:transform 0.1s; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+  }
+  #bone-target img { width:140px; height:60px; object-fit:contain; }
+  #bone-target.tap-flash { transform:scale(1.38); filter:brightness(1.5) drop-shadow(0 0 12px #fff700); }
+  #tap-prompt {
+    position:absolute; top:38%; left:50%; transform:translateX(-50%);
+    font-size:1.6em; font-weight:900; color:#fff700;
+    text-shadow:2px 2px 0 #e65100,0 0 20px rgba(249,168,37,0.9);
+    z-index:20; animation:pulsePrompt 0.6s ease-in-out infinite alternate;
+    display:none; white-space:nowrap; letter-spacing:1px;
+  }
+  @keyframes pulsePrompt {
+    0%{opacity:0.7;transform:translateX(-50%) scale(0.97)}
+    100%{opacity:1;transform:translateX(-50%) scale(1.04)}
+  }
+  #wait-overlay {
+    position:absolute; bottom:20%; left:50%; transform:translateX(-50%);
+    font-size:1.2em; font-weight:700; color:white;
+    text-shadow:1px 1px 8px rgba(0,0,0,0.9); z-index:20; display:none;
+  }
+  #feedback-overlay {
+    position:absolute; top:0; left:0; right:0; bottom:0;
+    display:flex; align-items:center; justify-content:center;
+    z-index:30; pointer-events:none;
+  }
+  #feedback-msg {
+    font-size:2.8em; font-weight:900; padding:14px 38px;
+    border-radius:22px; text-shadow:2px 2px 4px rgba(0,0,0,0.3);
+    animation:popIn 0.28s ease; display:none; letter-spacing:1px;
+  }
+  @keyframes popIn{0%{transform:scale(0.4);opacity:0}80%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+  #feedback-msg.win { background:linear-gradient(135deg,#2ECC71,#27AE60); color:white; box-shadow:0 8px 28px rgba(46,204,113,0.55); }
+  #feedback-msg.lose { background:linear-gradient(135deg,#E74C3C,#C0392B); color:white; box-shadow:0 8px 28px rgba(231,76,60,0.55); }
+  #rest-overlay {
+    position:absolute; top:0; left:0; right:0; bottom:0;
+    background:rgba(8,18,36,0.85); display:none;
+    flex-direction:column; align-items:center; justify-content:center; z-index:25;
+  }
+  #rest-img { width:260px; height:200px; object-fit:contain; opacity:0.92; border-radius:12px; }
+  #rest-overlay p { color:#aed6f1; font-size:1.2em; font-weight:700; margin-top:12px; }
+  #prize-area {
+    position:absolute; top:44px; right:14px; z-index:15;
+    background:rgba(0,0,0,0.58); border-radius:12px;
+    padding:8px 12px; display:flex; flex-direction:column;
+    align-items:center; gap:5px; backdrop-filter:blur(4px);
+  }
+  #prize-area img.mini-box { width:44px; height:36px; object-fit:contain; }
+  #prize-area .label { color:#fff; font-size:0.75em; font-weight:700; }
+  .bone-pips-mini { display:flex; gap:4px; }
+  .pip-mini {
+    width:14px; height:14px; border-radius:50%;
+    background:rgba(255,255,255,0.18); border:1.5px solid rgba(255,255,255,0.32);
+    transition:all 0.3s;
+  }
+  .pip-mini.filled { background:#f9a825; border-color:#e65100; box-shadow:0 0 6px rgba(249,168,37,0.8); }
+
+  /* BLOCK SUMMARY */
+  #screen-block-summary {
+    background:linear-gradient(160deg,#0d1b2a 0%,#1a2e44 100%); text-align:center; color:white;
+  }
+  #screen-block-summary h2 { font-size:2.2em; font-weight:900; color:#f9a825; margin-bottom:8px; }
+  #block-summary-desc { font-size:1.15em; color:#aed6f1; margin-bottom:10px; }
+  #block-summary-count { font-size:1.8em; color:#f9a825; font-weight:900; margin:10px 0 5px; }
+  #block-summary-art {
+    width:min(520px,92%); max-height:290px; object-fit:contain;
+    border-radius:16px; background:white; padding:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.25); margin:8px auto 12px;
+  }
+  #bone-summary { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin:14px 0; }
+  .bs-pip {
+    width:36px; height:36px; border-radius:50%;
+    background:rgba(255,255,255,0.1); border:2.5px solid rgba(255,255,255,0.25); transition:all 0.4s;
+  }
+  .bs-pip.filled { background:#f9a825; border-color:#e65100; box-shadow:0 0 14px rgba(249,168,37,0.7); }
+
+  /* MOOD */
+  #screen-mood { background:linear-gradient(160deg,#f8f0ff 0%,#e4d0ff 100%); text-align:center; }
+  #screen-mood h2 { font-size:2em; color:#5a1f8a; font-weight:900; margin-bottom:6px; }
+  #screen-mood > p { font-size:1.05em; color:#6a3a9a; margin-bottom:14px; }
+  #mood-img-wrap {
+    position:relative; display:inline-block;
+    max-width:720px; width:100%; cursor:pointer;
+    border-radius:14px; overflow:hidden;
+    box-shadow:0 6px 20px rgba(0,0,0,0.18);
+  }
+  #mood-img-wrap img { width:100%; height:auto; display:block; user-select:none; }
+  /* 7 invisible tap zones laid side-by-side over the image */
+  #mood-zones { position:absolute; top:0; left:0; right:0; bottom:0; display:flex; }
+  .mood-zone {
+    flex:1; cursor:pointer; transition:background 0.15s;
+  }
+  .mood-zone:hover  { background:rgba(142,68,173,0.12); }
+  .mood-zone.selected { background:rgba(142,68,173,0.28); outline:3px solid #8E44AD; outline-offset:-3px; }
+  #mood-selected-label {
+    font-size:1.1em; font-weight:900; color:#5a1f8a;
+    min-height:28px; margin-top:10px;
+  }
+  /* #mood-continue removed — mood advances automatically per 12,000ms protocol */
+
+  /* END */
+  #screen-end {
+    background:linear-gradient(135deg,#0d1b2a 0%,#1a2e44 50%,#0f3460 100%);
+    text-align:center; color:white;
+  }
+  #screen-end h1 { font-size:2.4em; color:#f9a825; font-weight:900; margin-bottom:8px; }
+  #screen-end > p { font-size:1.15em; color:#aed6f1; margin:6px 0; max-width:480px; }
+  #final-bones-msg { font-size:1.1em; font-weight:700; color:#f9a825; }
+  .save-status { margin-top:12px; padding:10px 24px; border-radius:12px; font-size:1em; font-weight:700; display:inline-block; }
+  .save-status.saving  { background:rgba(249,168,37,0.18); color:#f9a825; }
+  .save-status.saved   { background:rgba(46,204,113,0.18); color:#2ECC71; }
+  .save-status.saveerr { background:rgba(231,76,60,0.18); color:#E74C3C; }
+  #results-section {
+    margin-top:14px; background:rgba(255,255,255,0.07);
+    border-radius:14px; padding:14px; max-width:500px;
+    width:100%; max-height:200px; overflow-y:auto; text-align:left;
+  }
+  #results-section h3 { color:#f9a825; margin-bottom:8px; font-size:1em; }
+  #results-table { width:100%; border-collapse:collapse; font-size:0.82em; }
+  #results-table th { color:#aed6f1; border-bottom:1px solid rgba(255,255,255,0.15); padding:4px 7px; }
+  #results-table td { padding:4px 7px; color:#ecf0f1; }
+  #results-table tr:nth-child(even) td { background:rgba(255,255,255,0.04); }
+
+  /* Progress */
+  #progress-bar-wrap { position:absolute; top:0; left:0; right:0; height:5px; background:rgba(0,0,0,0.1); z-index:50; }
+  #progress-bar { height:100%; background:linear-gradient(90deg,#2ECC71,#f9a825); transition:width 0.5s ease; border-radius:0 3px 3px 0; }
+
+  /* Loading */
+  #loading-screen {
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    background:linear-gradient(160deg,#0d1b2a,#1a2e44);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999;
+  }
+  #loading-screen h2 { font-size:1.8em; font-weight:900; color:#f9a825; margin-top:16px; font-family:'Nunito',cursive; }
+  #loading-screen p { font-size:1em; color:#aed6f1; margin-top:8px; font-family:'Nunito',cursive; }
+  .load-bone { font-size:3.5em; animation:loadBounce 0.6s ease-in-out infinite alternate; }
+  @keyframes loadBounce{0%{transform:translateY(0)}100%{transform:translateY(-22px)}}
+  #load-bar-wrap { width:240px; height:10px; background:rgba(255,255,255,0.14); border-radius:10px; margin-top:18px; overflow:hidden; }
+  #load-bar { height:100%; width:0%; background:linear-gradient(90deg,#f9a825,#2ECC71); border-radius:10px; transition:width 0.2s; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="load-bone">🦴</div>
+  <h2>Loading FETCH Task...</h2>
+  <p id="load-msg">Preparing game assets...</p>
+  <div id="load-bar-wrap"><div id="load-bar"></div></div>
+</div>
+
+<div id="app">
+  <div id="progress-bar-wrap"><div id="progress-bar" style="width:0%"></div></div>
+
+  <!-- INTRO -->
+  <div id="screen-intro" class="screen active">
+    <h1>🐕 FETCH! 🦴</h1>
+    <div class="intro-scene"><img id="intro-bg" src="" alt="Park scene"></div>
+    <p class="subtitle">You're going to race <strong>Sparky the dog</strong> to catch bones for the prize boxes.</p>
+    <p class="subtitle" style="font-size:1em;color:#7a5500;">When the bone appears, tap it <strong>as fast as you can</strong>. When you win, you get a bone in your prize boxes. When you lose, a bone comes out.</p>
+    <button class="big-btn" onclick="showScreen('screen-pid')">Let's Play! →</button>
+  </div>
+
+  <!-- PARTICIPANT ID (Experimenter) -->
+  <div id="screen-pid" class="screen">
+    <h2>👋 Experimenter Setup</h2>
+    <p>Enter the Participant ID before starting:</p>
+    <input type="text" id="pid-input" placeholder="e.g. P001" maxlength="20" oninput="checkPID()">
+    <button class="big-btn" id="pid-btn" onclick="showPrizeSelection()" disabled>Next →</button>
+  </div>
+
+  <!-- PRIZE SELECTION -->
+  <div id="screen-prizes" class="screen">
+    <h2>🎁 Prize Boxes</h2>
+    <p>First, look at the prizes in each box. Then tap to rank them from favorite to least favorite.</p>
+    <div class="prize-boxes">
+      <div class="prize-box" id="box-blue" onclick="rankBox('blue')">
+        <img id="img-box-blue" src="" alt="Blue Box">
+        <div class="box-label" style="color:#2980B9">Blue Box</div>
+        <div class="box-contents">New Toys</div>
+        <div class="prize-rank" id="rank-blue"></div>
+      </div>
+      <div class="prize-box" id="box-red" onclick="rankBox('red')">
+        <img id="img-box-red" src="" alt="Red Box">
+        <div class="box-label" style="color:#C0392B">Red Box</div>
+        <div class="box-contents">New Stickers</div>
+        <div class="prize-rank" id="rank-red"></div>
+      </div>
+      <div class="prize-box" id="box-yellow" onclick="rankBox('yellow')">
+        <img id="img-box-yellow" src="" alt="Yellow Box">
+        <div class="box-label" style="color:#c89000">Yellow Box</div>
+        <div class="box-contents">Broken Crayons</div>
+        <div class="prize-rank" id="rank-yellow"></div>
+      </div>
+    </div>
+    <div id="rank-instruction">Tap to rank from your favorite (1st) to least favorite (3rd)!</div>
+    <p style="font-size:0.9em;color:#4a6a9a;margin-top:10px;">
+      The <strong style="color:#2980B9">blue box</strong> has new toys, the <strong style="color:#C0392B">red box</strong> has new stickers, and the <strong style="color:#c89000">yellow box</strong> has broken crayons. To choose a prize from the <strong style="color:#2980B9">blue box</strong>, you need to fill it with 5 bones.
+    </p>
+    <button class="big-btn" id="start-game-btn" onclick="startGame()" style="display:none">Start the Game →</button>
+  </div>
+
+  <!-- GAME -->
+  <div id="screen-game" class="screen">
+    <div id="hud">
+      <div class="block-info" id="block-info">Block 1 of 7</div>
+      <div id="bone-counter">
+        <div class="bone-pip" id="hud-pip0"></div>
+        <div class="bone-pip" id="hud-pip1"></div>
+        <div class="bone-pip" id="hud-pip2"></div>
+        <div class="bone-pip" id="hud-pip3"></div>
+        <div class="bone-pip" id="hud-pip4"></div>
+      </div>
+    </div>
+    <div id="park-scene">
+      <img id="bg-img" src="" alt="Scene">
+      <img id="catch-frame" src="" alt="">
+      <div id="prize-area">
+        <div class="label">Blue Box Goal</div>
+        <img class="mini-box" id="mini-box-img" src="" alt="Prize Box">
+        <div class="bone-pips-mini">
+          <div class="pip-mini" id="mp0"></div>
+          <div class="pip-mini" id="mp1"></div>
+          <div class="pip-mini" id="mp2"></div>
+          <div class="pip-mini" id="mp3"></div>
+          <div class="pip-mini" id="mp4"></div>
+        </div>
+      </div>
+      <div id="bone-target" onclick="tapBone()">
+        <img id="bone-img" src="" alt="Bone">
+      </div>
+      <div id="tap-prompt">👆 TAP the BONE!</div>
+      <div id="wait-overlay">Get ready... 🐾</div>
+      <div id="feedback-overlay"><div id="feedback-msg"></div></div>
+      <div id="rest-overlay">
+        <img id="rest-img" src="" alt="Rest">
+        <p>Taking a short nap...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- BLOCK SUMMARY -->
+  <div id="screen-block-summary" class="screen">
+    <h2 id="block-summary-title">🎉 Block Complete!</h2>
+    <p id="block-summary-desc">Here are your bones so far!</p>
+    <img id="block-summary-art" src="" alt="Your bones so far">
+    <div id="bone-summary"></div>
+    <p id="block-summary-count"></p>
+    <p style="font-size:0.95em;color:#7f8c9a;">How are you feeling?</p>
+  </div>
+
+  <!-- MOOD -->
+  <div id="screen-mood" class="screen">
+    <h2>How do you feel right now?</h2>
+    <p>Tap the face that shows how you're feeling!</p>
+    <div id="mood-img-wrap">
+      <img id="mood-instruction-img" src="" alt="Mood rating scale">
+      <div id="mood-zones">
+        <div class="mood-zone" data-score="1" onclick="selectMoodZone(1,this)"></div>
+        <div class="mood-zone" data-score="2" onclick="selectMoodZone(2,this)"></div>
+        <div class="mood-zone" data-score="3" onclick="selectMoodZone(3,this)"></div>
+        <div class="mood-zone" data-score="4" onclick="selectMoodZone(4,this)"></div>
+        <div class="mood-zone" data-score="5" onclick="selectMoodZone(5,this)"></div>
+        <div class="mood-zone" data-score="6" onclick="selectMoodZone(6,this)"></div>
+        <div class="mood-zone" data-score="7" onclick="selectMoodZone(7,this)"></div>
+      </div>
+    </div>
+    <div id="mood-selected-label"></div>
+    <!-- No Continue button: mood advances automatically per 12,000ms protocol -->
+  </div>
+
+  <!-- END -->
+  <div id="screen-end" class="screen">
+    <h1>🎉 Amazing Job!</h1>
+    <p>You finished the FETCH game!</p>
+    <p id="final-bones-msg"></p>
+    <div id="save-status-div"></div>
+    <div id="results-section">
+      <h3>📊 Results Summary</h3>
+      <table id="results-table">
+        <thead><tr>
+          <th>Block</th><th>Type</th><th>Trial</th><th>Outcome</th><th>RT(ms)</th><th>Mood</th>
+        </tr></thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<script>
+// ============================================================
+// FETCH TASK — Web Version  |  Perlman Lab, WashU
+// Assets from GitHub  |  Auto-save to Google Sheets
+// ============================================================
+
+// ╔══════════════════════════════════════════════════════════╗
+// ║  CONFIGURATION                                          ║
+// ╚══════════════════════════════════════════════════════════╝
+const GITHUB_BASE = 'https://raw.githubusercontent.com/Mingcong-TANG/FETCH/main/Fetch%20Task%20Touchscreen/';
+
+// ⚠️  ACTION REQUIRED BEFORE COLLECTING DATA  ⚠️
+// ─────────────────────────────────────────────────────────────
+// The URL below is a placeholder. Data CANNOT save to Drive until
+// you replace it with your deployed Google Apps Script Web App URL.
+// See the setup instructions in the comment block at the bottom of
+// this file (search for "GOOGLE DRIVE SETUP") for step-by-step guide.
+// ─────────────────────────────────────────────────────────────
+const GOOGLE_DRIVE_SCRIPT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+// ═════════════════════════════════════════════════════════════
+
+// ---- ASSET MAP ----
+const ASSETS = {
+  // Park background — shown during delay and as base layer during catch
+  bg_delay:        GITHUB_BASE + 'park2.bmp',
+  intro_bg:        GITHUB_BASE + 'park2.bmp',
+
+  // Prize boxes (Box1=yellow/broken crayons, Box3=red/stickers, Box5=blue/toys)
+  prize_blue:      GITHUB_BASE + 'Box5.bmp',
+  prize_red:       GITHUB_BASE + 'Box3.bmp',
+  prize_yellow:    GITHUB_BASE + 'Box1.bmp',
+  box_blue:        GITHUB_BASE + 'Box5.bmp',
+
+  // Tappable bone (standalone horizontal bone sprite derived from the study materials) + mood rating image
+  bone:            'data:image/png;base64,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',
+  moodinstruction: GITHUB_BASE + 'moodinstruction.bmp',
+
+  // Block-end summary screens
+  yourbones_win:   GITHUB_BASE + 'yourboneswin.bmp',
+  yourbones_lose:  GITHUB_BASE + 'yourboneslose.bmp',
+  yourbones_final: GITHUB_BASE + 'yourboneswinfinal.bmp',
+
+  // CATCH display set (18 fixed bone positions). Each bonetoss# image already contains
+  // the participant, the dog, and the bone at one location. We show one still bonetoss#
+  // image per trial during the catch phase, then switch to CatchYou# or CatchDog#.
+  bonetoss: Array.from({length:18}, (_,i) => GITHUB_BASE + 'bonetoss' + (i+1) + '.bmp'),
+
+  // Catch outcome images (18 position-matched variants)
+  catchYou: Array.from({length:18}, (_,i) => GITHUB_BASE + 'CatchYou' + (i+1) + '.bmp'),
+  catchDog: Array.from({length:18}, (_,i) => GITHUB_BASE + 'CatchDog'  + (i+1) + '.bmp'),
+
+  // FEEDBACK phase sequences
+  winFeedback: {
+    1: [GITHUB_BASE + 'Win11.bmp', GITHUB_BASE + 'Win12.bmp', GITHUB_BASE + 'Win13.bmp'],
+    2: [GITHUB_BASE + 'Win21.bmp', GITHUB_BASE + 'Win22.bmp', GITHUB_BASE + 'Win23.bmp'],
+    3: [GITHUB_BASE + 'Win31.bmp', GITHUB_BASE + 'Win32.bmp', GITHUB_BASE + 'Win33.bmp'],
+    4: [GITHUB_BASE + 'Win41.bmp', GITHUB_BASE + 'Win42.bmp', GITHUB_BASE + 'Win43.bmp'],
+    5: [GITHUB_BASE + 'Win51.bmp', GITHUB_BASE + 'Win52.bmp', GITHUB_BASE + 'Win53.bmp']
+  },
+  loseFeedback: {
+    0: [GITHUB_BASE + 'Lose01.bmp', GITHUB_BASE + 'Lose02.bmp', GITHUB_BASE + 'Lose03.bmp'],
+    1: [GITHUB_BASE + 'Lose11.bmp', GITHUB_BASE + 'Lose12.bmp', GITHUB_BASE + 'Lose13.bmp'],
+    2: [GITHUB_BASE + 'Lose21.bmp', GITHUB_BASE + 'Lose22.bmp', GITHUB_BASE + 'Lose23.bmp'],
+    3: [GITHUB_BASE + 'Lose31.bmp', GITHUB_BASE + 'Lose32.bmp', GITHUB_BASE + 'Lose33.bmp']
+  },
+
+  // REST phase animation: sleeping child and dog (5 frames).
+  // study_materials lists sleepingsparky.bmp + sleepingsparky2–5.bmp (5 files).
+  // All 5 frames loop during the rest phase; frame 1 filename has no number suffix.
+  restFrames: [
+    GITHUB_BASE + 'sleepingsparky.bmp',
+    GITHUB_BASE + 'sleepingsparky2.bmp',
+    GITHUB_BASE + 'sleepingsparky3.bmp',
+    GITHUB_BASE + 'sleepingsparky4.bmp',
+    GITHUB_BASE + 'sleepingsparky5.bmp',
+  ],
+
+  faces: Array.from({length:7}, (_,i) => GITHUB_BASE + 'Emotion' + (i+1) + '.JPG'),
+
+  // Audio — all filenames verified against study_materials.docx
+  snd_win:  GITHUB_BASE + 'CHIMES.WAV',          // win feedback chime
+  snd_tap:  GITHUB_BASE + 'DING.WAV',             // tap confirmation
+  snd_toss: GITHUB_BASE + 'Toss_Sound.wav',       // bone toss at catch onset
+  snd_lose: GITHUB_BASE + 'slide_whistle_down.wav', // lose feedback (study asset; replaces 'Losing Points.wav' which is not in study materials)
+  snd_rest: GITHUB_BASE + 'GoSleep.wav'           // rest phase onset
+};
+
+const FACE_LABELS = ['Very Sad/Upset','Sad','A Little Sad','OK','Pretty Happy','Happy','Very Happy'];
+
+// ---- TASK STRUCTURE ----
+// 7 blocks: W/L/W/L/W/L/W
+// Winning blocks (1,3,5): 5 wins, 1 loss out of 6 trials
+// Losing blocks (2,4,6):  1 win,  5 losses out of 6 trials
+// Block 7 (win):          6 wins, 1 loss out of 7 trials
+const BLOCKS = [
+  {type:'win',  trials:6, wins:5, loses:1},
+  {type:'lose', trials:6, wins:1, loses:5},
+  {type:'win',  trials:6, wins:5, loses:1},
+  {type:'lose', trials:6, wins:1, loses:5},
+  {type:'win',  trials:6, wins:5, loses:1},
+  {type:'lose', trials:6, wins:1, loses:5},
+  {type:'win',  trials:7, wins:6, loses:1},
+];
+
+// Timing (ms) per Description_of_task.docx + .prt timing files
+// NOTE: The original study noted a timing error where delay+rest did not sum to exactly
+// 6000ms. This version FIXES that by computing restDur = TRIAL_ITI_TOTAL - actualDelay,
+// ensuring delay+rest always total exactly 6000ms as the protocol intended.
+const DELAY_MIN            = 2500;   // jittered delay phase (ms)
+const DELAY_MAX            = 3500;
+const CATCH_DURATION       = 2000;   // bone on screen = exactly 2000ms
+const FEEDBACK_DURATION    = 2000;   // outcome feedback = exactly 2000ms
+// REST_DURATION is computed per-trial as: 6000ms - actualDelay
+// This ensures delay+rest always total exactly 6000ms (fixes original protocol error).
+const TRIAL_ITI_TOTAL = 6000;  // ms — total delay+rest inter-trial interval
+const BLOCK_SUMMARY_DURATION = 4000; // bone count display
+// Mood rating: FIXED 12,000ms display duration per Face.prt protocol.
+// The screen is always shown for exactly 12s, regardless of when the child taps.
+// Tapping records the response and RT immediately, but the screen does NOT advance early.
+// After 12s the screen advances; mood is null if no face was tapped.
+// This matches a strict reading of Face.prt where 12s is a fixed display time, not just a window.
+const MOOD_DURATION = 12000;   // ms — fixed display duration per Face.prt
+
+// Per study description:
+//   CATCH phase (2000ms): bone appears on the park scene at one fixed location and remains
+//   still until the child taps it or Sparky catches it.
+//
+//   FEEDBACK phase (2000ms): after the tap/catch event, catch-frame switches to the
+//   win/lose feedback sequence showing the bone moving into or out of the prize box.
+const CATCH_FRAME_MS = Math.floor(2000 / 18);  // = 111ms/frame; 18 frames fills the 2000ms catch window
+
+// ---- STATE ----
+let state = {
+  currentBlock:   0,
+  currentTrial:   0,
+  bonesCollected: 0,
+  maxBones:       5,
+  trialOutcomes:  [],
+  moodRatings:    [],
+  blockPlan:      [],
+  prizeRanking:   {},
+  participantId:  '',
+  sessionStart:   null,
+  taskOnset:      null,   // absolute ms for computing onset times
+  boneAppearTime: null,
+  delayOnset:     0,    // stored at catch onset so tapBone() reads the real value
+  catchOnset:     0,    // stored at catch onset so tapBone() reads the real value
+  restDuration:   0,    // computed per-trial so delay+rest = TRIAL_ITI_TOTAL exactly
+  trialOutcome:   null, // locked-in outcome for current trial — never re-derived mid-trial
+  trialBIdx:      0,    // locked-in block index for current trial
+  trialTIdx:      0,    // locked-in trial index for current trial
+  trialImageIdx:  0,    // 0..17 index used for bonetoss/CatchYou/CatchDog image sets
+  tapped:         false,
+  moodSelected:   null,
+  moodOnset_ms:   0,
+  moodOffset_ms:  0,
+  moodRT_ms:      null,   // ms from mood screen onset to first tap; null if no response
+  _moodTimer:     null,   // timeout handle for 12s mood window
+  phase:          'idle',
+  _catchTimer:    null,
+  _animTimer:     null,
+};
+
+// ---- AUDIO ----
+const audioWin  = new Audio(ASSETS.snd_win);
+const audioTap  = new Audio(ASSETS.snd_tap);
+const audioToss = new Audio(ASSETS.snd_toss);
+const audioLose = new Audio(ASSETS.snd_lose);
+const audioRest = new Audio(ASSETS.snd_rest);
+[audioWin, audioTap, audioToss, audioLose, audioRest].forEach(a => a.preload = 'auto');
+function playWin()  { try { audioWin.currentTime=0;  audioWin.play(); } catch(e){} }
+function playTap()  { try { audioTap.currentTime=0;  audioTap.play(); } catch(e){} }
+function playToss() { try { audioToss.currentTime=0; audioToss.play(); } catch(e){} }
+function playLose() { try { audioLose.currentTime=0; audioLose.play(); } catch(e){} }
+function playRest() { try { audioRest.currentTime=0; audioRest.play(); } catch(e){} }
+
+// ---- UTILS ----
+function shuffle(arr) {
+  let a=[...arr];
+  for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function randInt(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+function msOnset(){return state.taskOnset ? Date.now()-state.taskOnset : 0;}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ---- ASSET PRELOAD ----
+function preloadAll(cb){
+  const imgs=[
+    ASSETS.bg_delay, ASSETS.intro_bg,
+    ASSETS.prize_blue, ASSETS.prize_red, ASSETS.prize_yellow, ASSETS.box_blue,
+    ASSETS.bone, ASSETS.moodinstruction,
+    ASSETS.yourbones_win, ASSETS.yourbones_lose, ASSETS.yourbones_final,
+    ...ASSETS.faces, ...ASSETS.catchYou, ...ASSETS.catchDog,
+    ...ASSETS.bonetoss, ...ASSETS.restFrames,
+    ...Object.values(ASSETS.winFeedback).flat(),
+    ...Object.values(ASSETS.loseFeedback).flat()
+  ];
+  const audioTracks = [audioWin, audioTap, audioToss, audioLose, audioRest];
+  let total=imgs.length+audioTracks.length, done=0;
+  function tick(){
+    done++;
+    const pct=Math.round(done/total*100);
+    document.getElementById('load-bar').style.width=pct+'%';
+    document.getElementById('load-msg').textContent='Loading assets... '+pct+'%';
+    if(done>=total) cb();
+  }
+  imgs.forEach(src=>{const i=new Image();i.onload=i.onerror=tick;i.src=src;});
+  audioTracks.forEach(a=>{
+    a.addEventListener('canplaythrough',tick,{once:true});
+    a.load();
+  });
+}
+
+// ---- PID ----
+function checkPID(){
+  document.getElementById('pid-btn').disabled =
+    document.getElementById('pid-input').value.trim().length===0;
+}
+
+// ---- PRIZE RANKING ----
+let rankOrder=[];
+function rankBox(color){
+  if(rankOrder.includes(color)){
+    rankOrder=rankOrder.filter(c=>c!==color);
+  } else {
+    if(rankOrder.length<3) rankOrder.push(color);
+  }
+  ['blue','red','yellow'].forEach(c=>{
+    const idx=rankOrder.indexOf(c);
+    const el=document.getElementById('rank-'+c);
+    const box=document.getElementById('box-'+c);
+    if(idx>=0){
+      el.textContent=['⭐ 1st Choice','✌️ 2nd Choice','👌 3rd Choice'][idx];
+      box.classList.add('selected');
+    } else {
+      el.textContent=''; box.classList.remove('selected');
+    }
+  });
+  state.prizeRanking={first:rankOrder[0],second:rankOrder[1],third:rankOrder[2]};
+  const instr=document.getElementById('rank-instruction');
+  if(rankOrder.length===3){
+    instr.textContent='✅ All ranked! Ready to play!'; instr.style.color='#27AE60';
+    document.getElementById('start-game-btn').style.display='inline-block';
+  } else {
+    instr.textContent='Tap to rank! ('+rankOrder.length+'/3 ranked)'; instr.style.color='#E74C3C';
+    document.getElementById('start-game-btn').style.display='none';
+  }
+}
+
+function showPrizeSelection(){
+  state.participantId=document.getElementById('pid-input').value.trim()||('P_'+Date.now());
+  showScreen('screen-prizes');
+}
+
+// ---- GAME START ----
+function startGame(){
+  state.sessionStart   = new Date().toISOString();
+  state.taskOnset      = Date.now();
+  state.currentBlock   = 0;
+  state.currentTrial   = 0;
+  state.bonesCollected = 0;
+  state.trialOutcomes  = [];
+  state.moodRatings    = [];
+  document.getElementById('mini-box-img').src=ASSETS.box_blue;
+  showScreen('screen-game');
+  document.getElementById('block-info').textContent='Block 1 of '+BLOCKS.length;
+  updateBoneDisplay();
+  setTimeout(startBlock,600);
+}
+
+function buildBlockPlan(idx){
+  const b=BLOCKS[idx];
+  // The minority trial (one loss in a win-block, one win in a lose-block) must NOT appear
+  // first or last, because the within-block bone-count display would be distorted by the
+  // Math.max/min clamp. For example, in a lose-block starting at 4 bones, 5 consecutive
+  // losses before the single win would drive bones to 0 (clamped), then +1 = 1 at the end
+  // instead of the intended 0. To prevent this we place the minority trial at a fixed
+  // random position in [1, trials-2] (i.e. not the first or last slot).
+  const majority = (b.type==='win') ? 'win' : 'lose';
+  const minority  = (b.type==='win') ? 'lose' : 'win';
+  const plan = Array(b.trials).fill(majority);
+  // pick a slot that is neither first (0) nor last (trials-1)
+  const safeSlot = 1 + Math.floor(Math.random() * (b.trials - 2));
+  plan[safeSlot] = minority;
+  return plan;
+}
+
+function startBlock(){
+  const idx=state.currentBlock;
+  state.blockPlan=buildBlockPlan(idx);
+  state.currentTrial=0;
+  document.getElementById('block-info').textContent='Block '+(idx+1)+' of '+BLOCKS.length;
+  updateBoneDisplay();
+  setTimeout(runTrial,600);
+}
+
+function updateBoneDisplay(){
+  const n=state.bonesCollected;
+  for(let i=0;i<5;i++){
+    document.getElementById('hud-pip'+i).classList.toggle('filled',i<n);
+    document.getElementById('mp'+i).classList.toggle('filled',i<n);
+  }
+}
+
+function getFeedbackFrames(outcome, bonesAfter){
+  if(outcome==='win'){
+    return ASSETS.winFeedback[bonesAfter] || ASSETS.winFeedback[Math.min(Math.max(bonesAfter,1),5)];
+  }
+  const key = Math.min(Math.max(bonesAfter,0),3);
+  return ASSETS.loseFeedback[key] || ASSETS.loseFeedback[0];
+}
+
+function playFeedbackAnimation(frames, totalMs){
+  const cfEl=document.getElementById('catch-frame');
+  cfEl.style.display='block';
+  if(!frames || !frames.length) return;
+  const step=Math.max(1, Math.floor(totalMs / frames.length));
+  let idx=0;
+  cfEl.src=frames[0];
+  clearInterval(state._animTimer);
+  state._animTimer=setInterval(()=>{
+    idx++;
+    if(idx<frames.length){
+      cfEl.src=frames[idx];
+    }else{
+      clearInterval(state._animTimer);
+    }
+  }, step);
+}
+
+// ---- TRIAL ENGINE ----
+
+function runTrial(){
+  const bIdx=state.currentBlock, tIdx=state.currentTrial;
+  if(tIdx>=BLOCKS[bIdx].trials){ showBlockSummary(); return; }
+
+  const outcome=state.blockPlan[tIdx];
+  state.trialOutcome = outcome;
+  state.trialBIdx    = bIdx;
+  state.trialTIdx    = tIdx;
+  state.phase='delay';
+  state.tapped=false;
+
+  // DELAY PHASE — park scene only. No moving bone during delay.
+  // Per the study description, the child waits on the park scene and the bone appears
+  // in the next phase. Per your correction, the bone should remain still after appearing
+  // and should not move until the child taps it or Sparky catches it.
+  document.getElementById('bg-img').src=ASSETS.bg_delay;
+  const cfEl = document.getElementById('catch-frame');
+  cfEl.style.display='none';
+  clearInterval(state._animTimer);
+
+  const boneEl = document.getElementById('bone-target');
+  boneEl.style.pointerEvents='none';
+  boneEl.style.display='none';
+  document.getElementById('tap-prompt').style.display='none';
+  document.getElementById('wait-overlay').style.display='block';
+  document.getElementById('wait-overlay').textContent='Get ready... 🐾';
+  document.getElementById('feedback-msg').style.display='none';
+  hideRest();
+
+  const delayDur = randInt(DELAY_MIN, DELAY_MAX);
+  const restDur  = TRIAL_ITI_TOTAL - delayDur;
+  state.restDuration = restDur;
+  const delayOnset = msOnset();
+
+  setTimeout(()=>{
+    // CATCH PHASE — show one STILL bonetoss# image.
+    // Each bonetoss# already contains the participant, the dog, and the bone at one
+    // fixed location. Nothing moves until either the child taps or Sparky catches it.
+    state.phase='catch';
+    state.boneAppearTime=Date.now();
+    const catchOnset=msOnset();
+
+    document.getElementById('wait-overlay').style.display='none';
+    playToss();
+
+    const imageIdx = Math.floor(Math.random() * ASSETS.bonetoss.length);
+    state.trialImageIdx = imageIdx;
+
+    // Show the full still scene from the original study materials.
+    cfEl.src = ASSETS.bonetoss[imageIdx];
+    cfEl.style.display = 'block';
+    cfEl.style.pointerEvents = 'auto';
+    cfEl.onclick = tapBone;
+
+    // Invisible click region kept large so the visible bone scene remains faithful.
+    boneEl.style.left='50%';
+    boneEl.style.top ='28%';
+    boneEl.style.transform='translate(-50%,-50%)';
+    boneEl.style.width='70%';
+    boneEl.style.height='55%';
+    boneEl.style.background='transparent';
+    boneEl.style.pointerEvents='auto';
+    boneEl.style.display='block';
+    boneEl.innerHTML='';
+
+    document.getElementById('tap-prompt').style.display='block';
+
+    state.delayOnset = delayOnset;
+    state.catchOnset = catchOnset;
+
+    // On lose trials, Sparky catches the bone quickly before the participant can really react.
+    const autoCatchMs = (state.trialOutcome === 'lose')
+      ? randInt(220, 500)
+      : CATCH_DURATION;
+
+    state._catchTimer=setTimeout(()=>{
+      if(state.phase==='catch'&&!state.tapped){
+        resolveTrial(state.trialOutcome,autoCatchMs,
+                     state.trialBIdx,state.trialTIdx,
+                     state.delayOnset,state.catchOnset);
+      }
+    },autoCatchMs);
+  },delayDur);
+}
+
+function tapBone(){
+  // Guard 1: phase + tapped flag
+  if(state.phase!=='catch' || state.tapped) return;
+
+  // Immediately disable pointer-events so any subsequent touch events
+  // in the same gesture cannot fire a second tap
+  document.getElementById('bone-target').style.pointerEvents='none';
+
+  // Mark tapped FIRST so the auto-timeout's !state.tapped check sees it
+  state.tapped = true;
+  clearTimeout(state._catchTimer);
+  playTap();
+
+  const rt      = Date.now() - state.boneAppearTime;
+  const bIdx    = state.currentBlock;
+  const tIdx    = state.currentTrial;
+  // Read outcome from state.trialOutcome — set once at runTrial start,
+  // never changes mid-trial, even if blockPlan is rebuilt for a new block.
+  const outcome = state.trialOutcome;
+
+  const boneEl = document.getElementById('bone-target');
+  boneEl.classList.add('tap-flash');
+  setTimeout(()=>boneEl.classList.remove('tap-flash'), 150);
+
+  resolveTrial(outcome, rt, bIdx, tIdx, state.delayOnset, state.catchOnset);
+}
+
+function resolveTrial(outcome,rt,bIdx,tIdx,delayOnset,catchOnset){
+  // Guard: if we're already in feedback (or beyond), ignore this call.
+  if(state.phase !== 'catch') return;
+
+  state.phase = 'feedback';   // set immediately — blocks any further calls
+  const feedbackOnset = msOnset();
+
+  // WIN RULE: the game is fully rigged — the scheduled outcome IS the effective outcome.
+  // Per the study description: "The game is rigged, in that the participant will end
+  // with 4 of the 5 bones during some trials, end with 0 out of the 5 bones during
+  // other trials, and end the game with all 5 bones."
+  // Tapping records reaction time but does NOT determine the trial outcome.
+  // A win trial is always a win; a lose trial is always a loss.
+  const effectiveOutcome = outcome;  // pre-determined by block design; tapping doesn't change it
+
+  const boneTargetEl = document.getElementById('bone-target');
+  boneTargetEl.style.pointerEvents='none';
+  boneTargetEl.style.display='none';
+  document.getElementById('tap-prompt').style.display='none';
+
+  // Stop any running animation — trial outcome is now decided
+  clearInterval(state._animTimer);
+
+  const cfEl=document.getElementById('catch-frame');
+  cfEl.onclick = null;
+  cfEl.style.pointerEvents = 'none';
+
+  // First show the matched CatchYou#/CatchDog# scene so the child/dog visibly reaches the bone.
+  const outcomeStill = (effectiveOutcome==='win')
+    ? ASSETS.catchYou[state.trialImageIdx]
+    : ASSETS.catchDog[state.trialImageIdx];
+  cfEl.src = outcomeStill;
+  cfEl.style.display = 'block';
+
+  const feedbackFrames = getFeedbackFrames(effectiveOutcome,
+    effectiveOutcome==='win'
+      ? Math.min(state.bonesCollected+1,state.maxBones)
+      : Math.max(state.bonesCollected-1,0)
+  );
+
+  // Apply the rigged outcome after the still catch image has appeared.
+  const fbMsg=document.getElementById('feedback-msg');
+  if(effectiveOutcome==='win'){
+    fbMsg.className='win';
+    fbMsg.textContent='🦴 You won this one!';
+    state.bonesCollected=Math.min(state.bonesCollected+1,state.maxBones);
+    playWin();
+  } else {
+    fbMsg.className='lose';
+    fbMsg.textContent='🐕 Sparky won this one!';
+    state.bonesCollected=Math.max(state.bonesCollected-1,0);
+    playLose();
+  }
+  fbMsg.style.display='block';
+  updateBoneDisplay();
+
+  // Keep the catch-result image on screen briefly, then run the box feedback sequence.
+  const resultStillMs = Math.min(700, FEEDBACK_DURATION);
+  setTimeout(()=>{
+    if(state.phase==='feedback'){
+      playFeedbackAnimation(feedbackFrames, FEEDBACK_DURATION - resultStillMs);
+    }
+  }, resultStillMs);
+
+  // Record trial — save both the pre-determined (scheduled) outcome and
+  // the effective outcome (which depends on whether the participant tapped)
+  state.trialOutcomes.push({
+    participantId:      state.participantId,
+    sessionStart:       state.sessionStart,
+    block:              bIdx+1,
+    blockType:          BLOCKS[bIdx].type,
+    trial:              tIdx+1,
+    scheduledOutcome:   outcome,           // pre-determined by block design (win/lose)
+    outcome:            effectiveOutcome,  // same as scheduledOutcome — game is fully rigged
+    reactionTime_ms:    rt,
+    tapped:             state.tapped,
+    bonesAfter:         state.bonesCollected,
+    delayOnset_ms:      Math.round(delayOnset),
+    catchOnset_ms:      Math.round(catchOnset),
+    feedbackOnset_ms:   Math.round(feedbackOnset),
+    timestamp:          new Date().toISOString(),
+  });
+  updateProgress();
+
+  setTimeout(()=>{
+    fbMsg.style.display='none';
+    cfEl.style.display='none';
+    clearInterval(state._animTimer);
+
+    // REST PHASE
+    state.phase='rest';
+    showRest();
+
+    setTimeout(()=>{
+      hideRest();
+      state.currentTrial++;
+      runTrial();
+    }, state.restDuration);  // = TRIAL_ITI_TOTAL - delayDur, always sums to 6000ms
+  },FEEDBACK_DURATION);
+}
+
+function showRest(){
+  // Per description: "screen depicting the participant and the dog taking a short nap."
+  // study_materials provides 5 frames: sleepingsparky.bmp + sleepingsparky2–5.bmp.
+  // We loop all 5 frames on catch-frame (z-index:1) over the park bg for the rest duration.
+  // The dark rest-overlay is kept for the dimming effect; rest-img inside it is hidden
+  // since catch-frame handles the animation above the overlay.
+  document.getElementById('bg-img').src = ASSETS.bg_delay;  // park bg stays visible under overlay
+  document.getElementById('rest-overlay').style.display='flex';
+  playRest();
+  // Animate sleepingsparky frames on catch-frame layer
+  const cfEl = document.getElementById('catch-frame');
+  cfEl.style.display='block';
+  cfEl.src = ASSETS.restFrames[0];
+  let restIdx=0;
+  clearInterval(state._animTimer);
+  state._animTimer = setInterval(()=>{
+    restIdx = (restIdx+1) % ASSETS.restFrames.length;
+    cfEl.src = ASSETS.restFrames[restIdx];
+  }, 400);  // ~2.5 fps loop through 5 frames
+}
+function hideRest(){
+  document.getElementById('rest-overlay').style.display='none';
+  clearInterval(state._animTimer);
+  document.getElementById('catch-frame').style.display='none';
+}
+
+// ---- BLOCK SUMMARY ----
+function showBlockSummary(){
+  const bIdx=state.currentBlock, b=BLOCKS[bIdx];
+  const art = (bIdx===BLOCKS.length-1) ? ASSETS.yourbones_final : (b.type==='win' ? ASSETS.yourbones_win : ASSETS.yourbones_lose);
+  document.getElementById('block-summary-title').textContent =
+    bIdx===BLOCKS.length-1 ? '🎉 Last round complete!' : '🦴 Block complete!';
+  document.getElementById('block-summary-desc').textContent =
+    'End of Block '+(bIdx+1)+'. Here is how many bones you have right now:';
+  document.getElementById('block-summary-art').src = art;
+  document.getElementById('block-summary-count').textContent =
+    state.bonesCollected+' out of '+state.maxBones+' bones';
+
+  const boneDiv=document.getElementById('bone-summary');
+  boneDiv.innerHTML='';
+  for(let i=0;i<state.maxBones;i++){
+    const d=document.createElement('div');
+    d.className='bs-pip'+(i<state.bonesCollected?' filled':'');
+    boneDiv.appendChild(d);
+  }
+  showScreen('screen-block-summary');
+  setTimeout(showMoodRating,BLOCK_SUMMARY_DURATION);
+}
+
+// ---- MOOD RATING — strict 12,000ms fixed display (per Face.prt protocol) ----
+// Timeline:
+//   t=0       : screen shown, moodOnset recorded, 12s countdown starts
+//   t<12000ms : child may tap a face; tap is recorded immediately (moodRT_ms captured)
+//               but the screen does NOT advance — it stays visible for the full 12s
+//   t=12000ms : screen always advances here; mood=null if no face was ever tapped
+//
+// This is the strict reading of Face.prt: 12s is a fixed display duration, not just
+// a response window. A child who taps at 3s still sees the screen for 9 more seconds.
+function showMoodRating(){
+  state.moodSelected  = null;
+  state.moodRT_ms     = null;     // RT from onset to first tap (recorded on tap)
+  state.moodOnset_ms  = Math.round(msOnset());
+  state.moodOffset_ms = 0;
+  clearTimeout(state._moodTimer);
+  document.querySelectorAll('.mood-zone').forEach(z=>z.classList.remove('selected'));
+  document.getElementById('mood-selected-label').textContent='Tap the face that shows how you feel. You can change your choice until the screen ends.';
+  showScreen('screen-mood');
+
+  // Hard 12s timeout — always fires, advances the task regardless of whether child responded
+  state._moodTimer = setTimeout(()=>{
+    state.moodOffset_ms = Math.round(msOnset());
+    afterMoodRating();
+  }, MOOD_DURATION);
+}
+
+function selectMoodZone(score, el){
+  // Allow the participant to change their mind during the 12s rating window.
+  // We keep the MOST RECENT selection as the final mood rating, while preserving
+  // the first-tap RT as the initial response latency.
+  const nowRT = Math.round(msOnset()) - state.moodOnset_ms;
+
+  if(state.moodRT_ms === null){
+    state.moodRT_ms = nowRT;  // first response time only
+  }
+
+  state.moodSelected = score; // always update to the latest selected face
+
+  document.querySelectorAll('.mood-zone').forEach(z=>z.classList.remove('selected'));
+  el.classList.add('selected');
+  const labels=['Very Sad/Upset','Sad','A Little Sad','OK','Pretty Happy','Happy','Very Happy'];
+  document.getElementById('mood-selected-label').textContent='Selected: '+labels[score-1]+'. You can still change your choice.';
+  // No timer change — the existing 12s timer continues to run and will fire at exactly t=12s
+}
+
+function afterMoodRating(){
+  clearTimeout(state._moodTimer);  // safety clear in case called early somehow
+  const bIdx = state.currentBlock;
+  state.moodRatings.push({
+    participantId:  state.participantId,
+    block:          bIdx+1,
+    blockType:      BLOCKS[bIdx].type,
+    mood:           state.moodSelected,              // null = no tap within 12s
+    responded:      state.moodSelected !== null,
+    moodOnset_ms:   state.moodOnset_ms,
+    moodOffset_ms:  state.moodOffset_ms || Math.round(msOnset()),  // ~onset + 12000
+    moodRT_ms:      state.moodRT_ms,                 // ms from screen onset to tap; null if no response
+    timestamp:      new Date().toISOString(),
+  });
+  state.currentBlock++;
+  if(state.currentBlock>=BLOCKS.length){
+    showEndScreen();
+  } else {
+    showScreen('screen-game');
+    document.getElementById('block-info').textContent='Block '+(state.currentBlock+1)+' of '+BLOCKS.length;
+    startBlock();
+  }
+}
+
+// ---- END / AUTO-SAVE ----
+function showEndScreen(){
+  document.getElementById('final-bones-msg').textContent =
+    'You ended with '+state.bonesCollected+' out of '+state.maxBones+' bones.'+
+    (state.bonesCollected>=state.maxBones ? ' You filled the Blue Box and can choose a prize from it!':'');
+
+  const tbody=document.getElementById('results-body');
+  tbody.innerHTML='';
+  state.trialOutcomes.forEach(t=>{
+    const mood=state.moodRatings.find(m=>m.block===t.block);
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+t.block+'</td><td>'+t.blockType+'</td><td>'+t.trial+'</td>'
+      +'<td style="color:'+(t.outcome==='win'?'#2ECC71':'#E74C3C')+';font-weight:700">'+t.outcome+'</td>'
+      +'<td>'+t.reactionTime_ms+'</td><td>'+(mood?mood.mood??'—':'—')+'</td>';
+    tbody.appendChild(tr);
+  });
+
+  showScreen('screen-end');
+  updateProgress();
+  autoSaveData();
+}
+
+function buildPayload(){
+  const wins  = state.trialOutcomes.filter(t=>t.outcome==='win');
+  const loses = state.trialOutcomes.filter(t=>t.outcome==='lose');
+  const avgRT = arr=>arr.length?Math.round(arr.reduce((s,t)=>s+t.reactionTime_ms,0)/arr.length):null;
+  return {
+    participantId:  state.participantId,
+    sessionStart:   state.sessionStart,
+    sessionEnd:     new Date().toISOString(),
+    prizeRanking:   state.prizeRanking,
+    finalBones:     state.bonesCollected,
+    totalTrials:    state.trialOutcomes.length,
+    totalWins:      wins.length,
+    totalLosses:    loses.length,
+    avgRT_win_ms:   avgRT(wins),
+    avgRT_lose_ms:  avgRT(loses),
+    trialData:      state.trialOutcomes,
+    moodData:       state.moodRatings,
+  };
+}
+
+function buildCSV(payload){
+  // Trial data
+  let csv = 'ParticipantID,SessionStart,Block,BlockType,Trial,ScheduledOutcome,Outcome,RT_ms,Tapped,BonesAfter,DelayOnset_ms,CatchOnset_ms,FeedbackOnset_ms,Timestamp\n';
+  (payload.trialData||[]).forEach(t=>{
+    csv += [
+      t.participantId, t.sessionStart, t.block, t.blockType, t.trial,
+      t.scheduledOutcome, t.outcome, t.reactionTime_ms, t.tapped, t.bonesAfter,
+      t.delayOnset_ms, t.catchOnset_ms, t.feedbackOnset_ms, t.timestamp
+    ].join(',') + '\n';
+  });
+  // Mood data
+  csv += '\nBlock,BlockType,MoodRating,Responded,MoodOnset_ms,MoodOffset_ms,MoodRT_ms,Timestamp\n';
+  (payload.moodData||[]).forEach(m=>{
+    csv += [m.block, m.blockType, m.mood??'', m.responded??'', m.moodOnset_ms, m.moodOffset_ms??'', m.moodRT_ms??'', m.timestamp].join(',') + '\n';
+  });
+  // Prize ranking summary
+  csv += '\nPrizeRank1st,PrizeRank2nd,PrizeRank3rd,FinalBones\n';
+  csv += [
+    (payload.prizeRanking||{}).first,
+    (payload.prizeRanking||{}).second,
+    (payload.prizeRanking||{}).third,
+    payload.finalBones
+  ].join(',') + '\n';
+  return csv;
+}
+
+function autoSaveData(){
+  const statusDiv = document.getElementById('save-status-div');
+  const payload   = buildPayload();
+  const csvText   = buildCSV(payload);
+
+  // Send data to Qualtrics parent frame — this is the primary save mechanism.
+  // Qualtrics will store the data server-side as Embedded Data fields.
+  postToQualtrics(payload, csvText);
+
+  // Show a neutral "task complete" message to the participant — no save details shown.
+  statusDiv.innerHTML = '<div class="save-status saved">✅ All done! Your data has been recorded.</div>';
+}
+
+function postToQualtrics(payload, csvText){
+  // Send full payload + CSV to Qualtrics parent frame via postMessage.
+  // The Qualtrics question JS listens for this and saves it as Embedded Data.
+  try{
+    window.parent.postMessage({
+      type:    'FETCH_COMPLETE',
+      data:    payload,
+      csv:     csvText || ''
+    }, '*');
+  }catch(e){ console.warn('postMessage failed:', e); }
+
+  // Fallback: try direct Qualtrics API if same-origin access is available
+  try{
+    if(window.parent.Qualtrics && window.parent.Qualtrics.SurveyEngine){
+      window.parent.Qualtrics.SurveyEngine.setEmbeddedData('FETCH_JSON',      JSON.stringify(payload));
+      window.parent.Qualtrics.SurveyEngine.setEmbeddedData('FETCH_CSV',       csvText || '');
+      window.parent.Qualtrics.SurveyEngine.setEmbeddedData('FETCH_FinalBones',String(payload.finalBones));
+      window.parent.Qualtrics.SurveyEngine.setEmbeddedData('FETCH_TotalWins', String(payload.totalWins));
+      window.parent.Qualtrics.SurveyEngine.setEmbeddedData('FETCH_AvgRT',     String(payload.avgRT_win_ms));
+    }
+  }catch(e){}
+}
+
+// Emergency CSV download — only fires when Drive upload fails or URL is not set.
+// This is an EXPERIMENTER safety net, not a normal participant flow.
+function emergencyCSVDownload(payload, csvText, filename){
+  try {
+    const blob = new Blob([csvText], {type:'text/csv'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) { console.error('Emergency CSV download failed:', e); }
+}
+
+function updateProgress(){
+  const total=BLOCKS.reduce((s,b)=>s+b.trials,0);
+  document.getElementById('progress-bar').style.width=(state.trialOutcomes.length/total*100)+'%';
+}
+
+// ---- INIT ----
+window.addEventListener('load',()=>{
+  // Wire mood instruction image (single image with all 7 rating levels)
+  document.getElementById('mood-instruction-img').src = ASSETS.moodinstruction;
+
+  // Wire static image references
+  document.getElementById('intro-bg').src      = ASSETS.intro_bg;
+  document.getElementById('img-box-blue').src   = ASSETS.prize_blue;
+  document.getElementById('img-box-red').src    = ASSETS.prize_red;
+  document.getElementById('img-box-yellow').src = ASSETS.prize_yellow;
+  document.getElementById('bone-img').src       = ASSETS.bone;
+  document.getElementById('rest-img').src       = ASSETS.restFrames[0];  // static preview; animation runs via catch-frame
+
+  // Preload everything, then reveal
+  preloadAll(()=>{
+    document.getElementById('load-bar').style.width='100%';
+    document.getElementById('load-msg').textContent='Ready!';
+    setTimeout(()=>{ document.getElementById('loading-screen').style.display='none'; },400);
+  });
+});
+
+// Accept PID injection from Qualtrics parent frame
+window.addEventListener('message',(event)=>{
+  if(event.data&&event.data.type==='FETCH_INIT'&&event.data.participantId){
+    document.getElementById('pid-input').value=event.data.participantId;
+    checkPID();
+  }
+});
+
+/* ════════════════════════════════════════════════════════════
+   QUALTRICS EMBEDDING — Data saved server-side via Qualtrics
+   ════════════════════════════════════════════════════════════
+
+   HOW IT WORKS
+   ─────────────────────────────────────────────────────────
+   When the participant finishes the task, the iframe sends
+   all trial data, mood ratings, and prize rankings to the
+   Qualtrics parent frame via postMessage. Qualtrics stores
+   this as Embedded Data fields on their servers — no file
+   ever downloads to the participant's device.
+
+   STEP 1 — Host this HTML file
+   ─────────────────────────────────────────────────────────
+   Upload fetch_task_v10.html to a public host, e.g.:
+     • GitHub Pages  (free, recommended)
+     • OSF           (free)
+     • Your university web server
+
+   STEP 2 — Add the iframe to your Qualtrics question
+   ─────────────────────────────────────────────────────────
+   In your Text/Graphic question → click </> HTML Source:
+
+   <iframe id="fetch-frame"
+           src="YOUR_HOSTED_URL/fetch_task_v10.html"
+           width="820" height="650" frameborder="0"
+           allow="autoplay"
+           style="border:none;border-radius:12px;display:block;margin:0 auto;">
+   </iframe>
+
+   STEP 3 — Add this JavaScript to the SAME question
+   ─────────────────────────────────────────────────────────
+   In the question → JavaScript → paste the full block below:
+
+   Qualtrics.SurveyEngine.addOnload(function () {
+     var SE = this;
+
+     window.addEventListener('message', function (event) {
+       if (!event.data || event.data.type !== 'FETCH_COMPLETE') return;
+
+       var payload = event.data.data || {};
+       var csv     = event.data.csv  || '';
+
+       // ── Key summary fields (always saved) ──────────────────
+       Qualtrics.SurveyEngine.setEmbeddedData('FETCH_FinalBones', String(payload.finalBones   || ''));
+       Qualtrics.SurveyEngine.setEmbeddedData('FETCH_TotalWins',  String(payload.totalWins    || ''));
+       Qualtrics.SurveyEngine.setEmbeddedData('FETCH_AvgRT',      String(payload.avgRT_win_ms || ''));
+       Qualtrics.SurveyEngine.setEmbeddedData('FETCH_ParticipantID', String(payload.participantId || ''));
+       Qualtrics.SurveyEngine.setEmbeddedData('FETCH_SessionStart',  String(payload.sessionStart  || ''));
+
+       // ── Prize rankings ──────────────────────────────────────
+       var pr = payload.prizeRanking || {};
+       Qualtrics.SurveyEngine.setEmbeddedData('FETCH_Prize1st', String(pr.first  || ''));
+       Qualtrics.SurveyEngine.setEmbeddedData('FETCH_Prize2nd', String(pr.second || ''));
+       Qualtrics.SurveyEngine.setEmbeddedData('FETCH_Prize3rd', String(pr.third  || ''));
+
+       // ── Full CSV (all trial + mood data) ───────────────────
+       // Note: Qualtrics Embedded Data has a ~20 KB limit per field.
+       // For longer sessions consider splitting or using JSON instead.
+       Qualtrics.SurveyEngine.setEmbeddedData('FETCH_CSV',  csv);
+
+       // ── Full JSON payload (for richer downstream analysis) ──
+       Qualtrics.SurveyEngine.setEmbeddedData('FETCH_JSON', JSON.stringify(payload));
+     });
+   });
+
+   STEP 4 — Define Embedded Data fields in Survey Flow
+   ─────────────────────────────────────────────────────────
+   Survey Flow → Add Element → Embedded Data.
+   Add ALL of these field names (leave values blank — they
+   are filled at runtime by the JS above):
+
+     FETCH_ParticipantID   (Text)
+     FETCH_SessionStart    (Text)
+     FETCH_FinalBones      (Number)
+     FETCH_TotalWins       (Number)
+     FETCH_AvgRT           (Number)
+     FETCH_Prize1st        (Text)
+     FETCH_Prize2nd        (Text)
+     FETCH_Prize3rd        (Text)
+     FETCH_CSV             (Text)
+     FETCH_JSON            (Text)
+
+   STEP 5 — Export data
+   ─────────────────────────────────────────────────────────
+   Data & Analysis → Export & Import → Export Data → CSV.
+   The FETCH_ columns will appear alongside all other survey
+   responses. No separate download or Drive upload needed.
+
+   ════════════════════════════════════════════════════════
+   CSV COLUMN REFERENCE
+   ════════════════════════════════════════════════════════
+   Trial columns (in FETCH_CSV):
+     ParticipantID, SessionStart, Block, BlockType, Trial,
+     ScheduledOutcome, Outcome, RT_ms, Tapped, BonesAfter,
+     DelayOnset_ms, CatchOnset_ms, FeedbackOnset_ms, Timestamp
+
+   Mood columns (in FETCH_CSV):
+     Block, BlockType, MoodRating (1=Very Sad → 7=Very Happy),
+     Responded, MoodOnset_ms, MoodOffset_ms, MoodRT_ms, Timestamp
+
+   Summary (in FETCH_CSV):
+     PrizeRank1st, PrizeRank2nd, PrizeRank3rd, FinalBones
+   ════════════════════════════════════════════════════════ */
+</script>
+</body>
+</html>
